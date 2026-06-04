@@ -18,6 +18,7 @@ const NAV = [
       { to: '/respostas', icon: '📋', label: 'Respostas'       },
       { to: '/riscos',    icon: '⚠️',  label: 'Riscos'         },
       { to: '/escuta',    icon: '🎙️', label: 'Escuta da Equipe' },
+      { to: '/denuncias', icon: '📢', label: 'Denúncias'        },
     ],
   },
   {

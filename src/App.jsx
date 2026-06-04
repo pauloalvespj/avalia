@@ -18,6 +18,8 @@ import OkrsPage         from '@/pages/OkrsPage'
 import ChecklistPage    from '@/pages/ChecklistPage'
 import RelatorioPage    from '@/pages/RelatorioPage'
 import EscutaPage      from '@/pages/EscutaPage'
+import DenunciaPage    from '@/pages/DenunciaPage'
+import DenunciasPage   from '@/pages/DenunciasPage'
 import PerfilPage              from '@/pages/PerfilPage'
 import ConfiguracoesPage       from '@/pages/admin/ConfiguracoesPage'
 import UsuariosPage            from '@/pages/admin/UsuariosPage'
@@ -44,6 +46,7 @@ export default function App() {
       <Route path="/login"    element={<LoginPage />} />
       <Route path="/cadastro" element={<CadastroPage />} />
       <Route path="/questionario" element={<QuestionarioPage />} />
+      <Route path="/denuncia"     element={<DenunciaPage />} />
 
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
@@ -56,6 +59,7 @@ export default function App() {
         <Route path="okrs"        element={<OkrsPage />} />
         <Route path="checklist"   element={<ChecklistPage />} />
         <Route path="escuta"      element={<EscutaPage />} />
+        <Route path="denuncias"   element={<DenunciasPage />} />
         <Route path="relatorio"   element={<RelatorioPage />} />
         <Route path="perfil"      element={<PerfilPage />} />
 

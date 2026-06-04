@@ -110,13 +110,25 @@ export default function RespostasPage() {
   const { empresaAtiva } = useEmpresa()
 
   const [setores, setSetores]         = useState([])
-  const [setorFiltro, setSetorFiltro] = useState('todos') // 'todos' ou id do setor
+  const [setorFiltro, setSetorFiltro] = useState('todos')
   const [respostas, setRespostas]     = useState([])
   const [loading, setLoading]         = useState(false)
   const [calculando, setCalculando]   = useState(false)
   const [deleting, setDeleting]       = useState(null)
   const [visualizando, setVisualizando] = useState(null)
   const [toast, setToast]             = useState(null)
+  const [linkAberto, setLinkAberto]   = useState(false)
+  const [copiado, setCopiado]         = useState(false)
+
+  const linkQuestionario = empresaAtiva
+    ? `${window.location.origin}/questionario?empresa=${empresaAtiva.id}`
+    : ''
+
+  async function copiarLink() {
+    await navigator.clipboard.writeText(linkQuestionario)
+    setCopiado(true)
+    setTimeout(() => setCopiado(false), 2000)
+  }
 
   // Carrega lista de setores quando muda empresa
   useEffect(() => {
@@ -238,6 +250,31 @@ export default function RespostasPage() {
 
   return (
     <div>
+      <PageHeader
+        title="Respostas"
+        subtitle={`${nomeSetor} · ${respostas.length} resposta${respostas.length !== 1 ? 's' : ''}`}
+        action={
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setLinkAberto(true); setCopiado(false) }}
+              className="text-xs font-bold px-4 py-2 rounded-lg flex-shrink-0 transition-colors"
+              style={{ background: '#0e7490', color: '#fff', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#0c6278'}
+              onMouseLeave={e => e.currentTarget.style.background = '#0e7490'}
+            >
+              🔗 Link do Questionário
+            </button>
+            <button className="btn-secondary" onClick={baixarPlanilha} disabled={!respostas.length}
+              title="Baixar planilha CSV com todas as respostas">
+              ⬇️ Planilha
+            </button>
+            <button className="btn-primary" onClick={calcularEUpsert} disabled={calculando || !respostas.length}>
+              {calculando ? 'Calculando...' : '⚠️ Calcular riscos'}
+            </button>
+          </div>
+        }
+      />
+
       {/* Filtro de setor */}
       <div className="flex items-center gap-3 mb-5">
         <label className="text-sm font-semibold text-navy whitespace-nowrap">Setor:</label>
@@ -252,22 +289,6 @@ export default function RespostasPage() {
           ))}
         </select>
       </div>
-
-      <PageHeader
-        title="Respostas"
-        subtitle={`${nomeSetor} · ${respostas.length} resposta${respostas.length !== 1 ? 's' : ''}`}
-        action={
-          <div className="flex gap-2">
-            <button className="btn-secondary" onClick={baixarPlanilha} disabled={!respostas.length}
-              title="Baixar planilha CSV com todas as respostas">
-              ⬇️ Planilha
-            </button>
-            <button className="btn-primary" onClick={calcularEUpsert} disabled={calculando || !respostas.length}>
-              {calculando ? 'Calculando...' : '⚠️ Calcular riscos'}
-            </button>
-          </div>
-        }
-      />
 
       {loading ? <LoadingSpinner /> : !respostas.length ? (
         <EmptyState icon="📋" title="Nenhuma resposta registrada"
@@ -338,6 +359,33 @@ export default function RespostasPage() {
           onConfirm={() => handleDelete(deleting.id)}
           onClose={() => setDeleting(null)}
         />
+      )}
+
+      {linkAberto && (
+        <Modal title="🔗 Link do Questionário" onClose={() => setLinkAberto(false)} size="sm">
+          <div className="space-y-4 text-center">
+            <p className="text-sm text-muted">
+              Compartilhe com os colaboradores de <strong className="text-navy">{empresaAtiva.nome}</strong>.
+              Cada pessoa escolhe o próprio setor antes de responder.
+            </p>
+            <div className="flex items-center gap-2 bg-bg border border-border rounded-xl px-3 py-2">
+              <span className="text-xs text-navy break-all flex-1 text-left font-mono">{linkQuestionario}</span>
+              <button onClick={copiarLink} className="btn-primary text-xs px-3 py-1.5 flex-shrink-0">
+                {copiado ? '✅ Copiado!' : 'Copiar'}
+              </button>
+            </div>
+            <div className="flex justify-center">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(linkQuestionario)}`}
+                alt="QR Code"
+                width={200} height={200}
+                className="rounded-xl border border-border"
+              />
+            </div>
+            <p className="text-xs text-muted">O link não expira e não requer login.</p>
+            <button className="btn-secondary w-full" onClick={() => setLinkAberto(false)}>Fechar</button>
+          </div>
+        </Modal>
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

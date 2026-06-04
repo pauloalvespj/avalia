@@ -86,9 +86,9 @@ function NivelBadge({ score }) {
 
 function ScoreButtons({ value, onChange }) {
   return (
-    <div className="flex gap-1">
+    <div className="flex items-center gap-1">
       {[1, 2, 3, 4, 5].map(n => (
-        <button key={n} onClick={() => onChange(n)}
+        <button key={n} onClick={() => onChange(value === n ? null : n)}
           className="w-7 h-7 rounded-lg text-xs font-bold transition-all border"
           style={value === n
             ? { background: '#1a2e4a', color: '#fff', borderColor: '#1a2e4a' }
@@ -96,6 +96,14 @@ function ScoreButtons({ value, onChange }) {
           {n}
         </button>
       ))}
+      {value != null && (
+        <button onClick={() => onChange(null)}
+          title="Limpar score"
+          className="w-6 h-6 rounded-lg text-xs font-bold transition-all border flex items-center justify-center"
+          style={{ background: '#fee2e2', color: '#991b1b', borderColor: '#fecaca' }}>
+          ×
+        </button>
+      )}
     </div>
   )
 }
@@ -176,7 +184,13 @@ export default function RiscosPage() {
   }
 
   async function persistir(sf, score, evidencias) {
-    if (!setorId || score == null) return
+    if (!setorId) return
+    if (score == null) {
+      const { error } = await supabase.from('riscos')
+        .delete().eq('setor_id', setorId).eq('fator', sf)
+      if (error) setToast({ message: 'Erro ao limpar: ' + error.message, type: 'error' })
+      return
+    }
     const { error } = await supabase.from('riscos').upsert(
       { setor_id: setorId, fator: sf, score, nivel: nivelRisco(score), evidencias: evidencias ?? '' },
       { onConflict: 'setor_id,fator' }

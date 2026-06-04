@@ -1,0 +1,239 @@
+import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
+import { useEmpresa } from '@/hooks/useEmpresa'
+import { useState, useEffect, useRef } from 'react'
+import { supabase } from '@/lib/supabase'
+
+const NAV = [
+  {
+    label: 'Principal',
+    items: [
+      { to: '/dashboard', icon: '📊', label: 'Dashboard'       },
+      { to: '/setores',   icon: '🏬', label: 'Sobre a Empresa' },
+    ],
+  },
+  {
+    label: 'Avaliação',
+    items: [
+      { to: '/respostas', icon: '📋', label: 'Respostas'       },
+      { to: '/riscos',    icon: '⚠️',  label: 'Riscos'         },
+      { to: '/escuta',    icon: '🎙️', label: 'Escuta da Equipe' },
+    ],
+  },
+  {
+    label: 'Gestão',
+    items: [
+      { to: '/diagnostico', icon: '🔬', label: 'Diagnóstico'  },
+      { to: '/plano-acao',  icon: '🎯', label: 'Plano de Ação' },
+      { to: '/okrs',        icon: '📈', label: 'OKRs e KPIs'  },
+      { to: '/checklist',   icon: '✅', label: 'Checklist'    },
+      { to: '/relatorio',   icon: '📄', label: 'Relatório'    },
+    ],
+  },
+]
+
+const NAV_ADMIN = [
+  { to: '/empresas',            icon: '🏢', label: 'Empresas'      },
+  { to: '/admin/perguntas',     icon: '📝', label: 'Perguntas'     },
+  { to: '/admin/configuracoes', icon: '⚙️', label: 'Configurações' },
+  { to: '/admin/usuarios',      icon: '👥', label: 'Usuários'      },
+]
+
+// Pill dropdown — só empresa agora
+function EmpresaPill() {
+  const { user }                   = useAuth()
+  const { empresaAtiva, setEmpresaAtiva } = useEmpresa()
+  const [empresas, setEmpresas]    = useState([])
+  const [open, setOpen]            = useState(false)
+  const ref                        = useRef(null)
+
+  useEffect(() => {
+    if (!user) return
+    supabase.from('empresas').select('id, nome, setor_ramo').eq('consultor_id', user.id).order('nome')
+      .then(({ data }) => setEmpresas(data ?? []))
+  }, [user])
+
+  useEffect(() => {
+    function handle(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [])
+
+  const label = empresaAtiva?.nome ?? 'Selecionar empresa'
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-white text-xs cursor-pointer transition-colors"
+        style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.18)' }}
+      >
+        <span className="text-white/60">🏢</span>
+        <span className="font-semibold max-w-[120px] sm:max-w-[180px] truncate">{label}</span>
+        <span className="text-white/40 text-2xs">▾</span>
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 mt-1.5 w-64 bg-white border border-border rounded-[10px] shadow-lg z-50 overflow-hidden py-1">
+          {!empresas.length ? (
+            <div className="px-4 py-3 text-xs text-muted">Nenhuma empresa cadastrada</div>
+          ) : empresas.map(e => (
+            <button key={e.id}
+              onClick={() => { setEmpresaAtiva(e); setOpen(false) }}
+              className="w-full text-left px-4 py-2.5 text-sm hover:bg-bg transition-colors flex items-center justify-between gap-2"
+              style={{ color: e.id === empresaAtiva?.id ? '#3a7bd5' : '#1a2e4a', background: e.id === empresaAtiva?.id ? '#ddeeff' : undefined }}
+            >
+              <div className="min-w-0">
+                <div className="font-semibold truncate">{e.nome}</div>
+                {e.setor_ramo && <div className="text-xs text-muted">{e.setor_ramo}</div>}
+              </div>
+              {e.id === empresaAtiva?.id && <span className="text-primary text-xs flex-shrink-0">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function NavItem({ item, onClick }) {
+  return (
+    <NavLink to={item.to} onClick={onClick}
+      className={({ isActive }) =>
+        `flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors border-l-[3px]
+         ${isActive ? 'border-[#5a96e8] text-white' : 'border-transparent text-white/70 hover:text-white hover:bg-white/5'}`
+      }
+      style={({ isActive }) => isActive ? { background: 'rgba(58,123,213,0.20)' } : undefined}
+    >
+      <span className="w-[18px] text-center text-base">{item.icon}</span>
+      <span>{item.label}</span>
+    </NavLink>
+  )
+}
+
+export default function Layout() {
+  const { user, signOut, isAdmin, perfil } = useAuth()
+  const navigate = useNavigate()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  async function handleSignOut() {
+    await signOut()
+    navigate('/login')
+  }
+
+  // Fecha sidebar ao redimensionar para desktop
+  useEffect(() => {
+    function onResize() { if (window.innerWidth >= 1024) setSidebarOpen(false) }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  return (
+    <div className="flex flex-col h-screen overflow-hidden">
+
+      {/* ── TOPBAR ── */}
+      <header
+        className="flex items-center gap-2 px-3 sm:px-4 h-14 flex-shrink-0 z-50"
+        style={{ background: '#1a2e4a', boxShadow: '0 2px 12px rgba(0,0,0,0.2)' }}
+      >
+        {/* Hamburger — mobile only, primeiro item */}
+        <button
+          className="lg:hidden flex items-center justify-center w-9 h-9 rounded-lg text-white text-lg flex-shrink-0"
+          style={{ background: 'rgba(255,255,255,0.12)' }}
+          onClick={() => setSidebarOpen(o => !o)}
+          aria-label="Menu"
+        >
+          {sidebarOpen ? '✕' : '☰'}
+        </button>
+
+        {/* Logo */}
+        <div className="font-black text-white text-base tracking-tight whitespace-nowrap">
+          Sistema <span style={{ color: '#e8a020' }}>Avalia</span>
+        </div>
+
+        {/* Separador */}
+        <div className="w-px h-5 bg-white/20 hidden sm:block" />
+
+        {/* Pill empresa */}
+        <EmpresaPill />
+
+        <div className="flex-1" />
+
+        {/* E-mail + Sair */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-white/50 text-xs hidden md:block truncate max-w-[140px]">{user?.email}</span>
+          <button
+            onClick={handleSignOut}
+            className="text-white text-xs px-2.5 py-1.5 rounded-md transition-colors flex-shrink-0"
+            style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.20)' }}
+          >
+            Sair
+          </button>
+        </div>
+      </header>
+
+      {/* ── LAYOUT ABAIXO DO TOPBAR ── */}
+      <div className="flex flex-1 min-h-0 relative">
+
+        {/* Overlay mobile */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-20 bg-black/50 lg:hidden"
+            style={{ top: 56 }}
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* ── SIDEBAR ── */}
+        <aside
+          className={`
+            fixed lg:static
+            top-14 bottom-0 left-0
+            lg:top-auto lg:bottom-auto
+            z-30 flex flex-col w-[240px] lg:w-[220px] flex-shrink-0
+            transition-transform duration-200 ease-in-out
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
+          `}
+          style={{ background: '#243c5c' }}
+        >
+          <nav className="flex-1 overflow-y-auto py-3">
+            {NAV.map(group => (
+              <div key={group.label}>
+                <div className="px-4 pt-3 pb-1 text-2xs font-bold uppercase tracking-widest"
+                  style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  {group.label}
+                </div>
+                {group.items.map(item => (
+                  <NavItem key={item.to} item={item} onClick={() => setSidebarOpen(false)} />
+                ))}
+              </div>
+            ))}
+
+            {/* Administração */}
+            {(isAdmin || !perfil) && (
+              <div>
+                <div className="px-4 pt-3 pb-1 text-2xs font-bold uppercase tracking-widest"
+                  style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  Administração
+                </div>
+                {NAV_ADMIN.map(item => (
+                  <NavItem key={item.to} item={item} onClick={() => setSidebarOpen(false)} />
+                ))}
+              </div>
+            )}
+
+            {/* Meu Perfil */}
+            <div className="border-t border-white/10 mt-2 pt-2">
+              <NavItem item={{ to: '/perfil', icon: '👤', label: 'Meu Perfil' }} onClick={() => setSidebarOpen(false)} />
+            </div>
+          </nav>
+        </aside>
+
+        {/* ── CONTEÚDO ── */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 min-w-0" style={{ background: '#f4f6fa' }}>
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  )
+}

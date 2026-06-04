@@ -62,17 +62,17 @@ function Alerta({ tipo, texto }) {
 
 export default function DashboardPage() {
   const { user } = useAuth()
-  const { empresaAtiva } = useEmpresa()
+  const { empresaAtiva, setEmpresaAtiva } = useEmpresa()
 
-  const [dados, setDados]       = useState(null)
-  const [loading, setLoading]   = useState(false)
-  const [totalEmpresas, setTotalEmpresas] = useState(null)
+  const [dados, setDados]         = useState(null)
+  const [loading, setLoading]     = useState(false)
+  const [listaEmpresas, setListaEmpresas] = useState(null)
 
-  // Verifica se o usuário tem empresas cadastradas (só quando não há empresa ativa)
+  // Carrega lista de empresas quando não há empresa ativa
   useEffect(() => {
     if (empresaAtiva?.id || !user) return
-    supabase.from('empresas').select('id', { count: 'exact', head: true }).eq('consultor_id', user.id)
-      .then(({ count }) => setTotalEmpresas(count ?? 0))
+    supabase.from('empresas').select('id, nome, setor_ramo, status_lead').eq('consultor_id', user.id).order('nome')
+      .then(({ data }) => setListaEmpresas(data ?? []))
   }, [empresaAtiva?.id, user])
 
   const load = useCallback(async () => {
@@ -154,16 +154,37 @@ export default function DashboardPage() {
   useEffect(() => { load() }, [load])
 
   if (!empresaAtiva?.id) {
-    if (totalEmpresas === null) return <LoadingSpinner />
-    if (totalEmpresas === 0) return (
+    if (listaEmpresas === null) return <LoadingSpinner />
+    if (listaEmpresas.length === 0) return (
       <EmptyState icon="🏢" title="Nenhuma empresa cadastrada"
         description="Cadastre sua primeira empresa para começar a usar o sistema."
         action={<Link to="/empresas" className="btn-primary">Cadastrar empresa</Link>} />
     )
     return (
-      <EmptyState icon="🏢" title="Selecione uma empresa"
-        description="Use o menu superior para escolher a empresa que deseja visualizar."
-        action={<Link to="/empresas" className="btn-primary">Ir para Empresas</Link>} />
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-xl font-black text-navy">Selecione uma empresa</h1>
+          <p className="text-sm text-muted mt-0.5">Clique para entrar direto no dashboard</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {listaEmpresas.map(e => (
+            <button key={e.id} onClick={() => setEmpresaAtiva(e)}
+              className="card text-left hover:shadow-md transition-all w-full"
+              style={{ cursor: 'pointer' }}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-bold text-navy truncate">{e.nome}</div>
+                  {e.setor_ramo && <div className="text-xs text-muted mt-0.5 truncate">{e.setor_ramo}</div>}
+                </div>
+                <span className="text-lg flex-shrink-0">🏢</span>
+              </div>
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted">
+          Ou gerencie todas as empresas em <Link to="/empresas" className="text-primary font-semibold hover:underline">Empresas →</Link>
+        </p>
+      </div>
     )
   }
 

@@ -31,6 +31,12 @@ const NAV = [
       { to: '/relatorio',   icon: '📄', label: 'Relatório'    },
     ],
   },
+  {
+    label: 'Agenda',
+    items: [
+      { to: '/agendamentos', icon: '📅', label: 'Agendamentos' },
+    ],
+  },
 ]
 
 const NAV_ADMIN = [

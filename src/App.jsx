@@ -20,6 +20,7 @@ import RelatorioPage    from '@/pages/RelatorioPage'
 import EscutaPage      from '@/pages/EscutaPage'
 import DenunciaPage    from '@/pages/DenunciaPage'
 import DenunciasPage   from '@/pages/DenunciasPage'
+import AgendamentosPage        from '@/pages/AgendamentosPage'
 import PerfilPage              from '@/pages/PerfilPage'
 import ConfiguracoesPage       from '@/pages/admin/ConfiguracoesPage'
 import UsuariosPage            from '@/pages/admin/UsuariosPage'
@@ -58,6 +59,7 @@ export default function App() {
         <Route path="plano-acao"  element={<PlanoAcaoPage />} />
         <Route path="okrs"        element={<OkrsPage />} />
         <Route path="checklist"   element={<ChecklistPage />} />
+        <Route path="agendamentos" element={<AgendamentosPage />} />
         <Route path="escuta"      element={<EscutaPage />} />
         <Route path="denuncias"   element={<DenunciasPage />} />
         <Route path="relatorio"   element={<RelatorioPage />} />

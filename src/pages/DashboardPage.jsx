@@ -62,41 +62,61 @@ function Alerta({ tipo, texto }) {
 
 export default function DashboardPage() {
   const { user } = useAuth()
-  const { empresaAtiva, setorAtivo } = useEmpresa()
+  const { empresaAtiva } = useEmpresa()
 
-  const [dados, setDados]   = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [dados, setDados]       = useState(null)
+  const [loading, setLoading]   = useState(false)
+  const [totalEmpresas, setTotalEmpresas] = useState(null)
+
+  // Verifica se o usuário tem empresas cadastradas (só quando não há empresa ativa)
+  useEffect(() => {
+    if (empresaAtiva?.id || !user) return
+    supabase.from('empresas').select('id', { count: 'exact', head: true }).eq('consultor_id', user.id)
+      .then(({ count }) => setTotalEmpresas(count ?? 0))
+  }, [empresaAtiva?.id, user])
 
   const load = useCallback(async () => {
-    if (!setorAtivo || !empresaAtiva) { setDados(null); return }
+    if (!empresaAtiva?.id) { setDados(null); return }
     setLoading(true)
+
+    // Carrega setores da empresa
+    const { data: setoresEmpresa } = await supabase
+      .from('setores').select('id, nome').eq('empresa_id', empresaAtiva.id)
+
+    const setorIds = (setoresEmpresa ?? []).map(s => s.id)
 
     const [
       { count: totalRespostas },
       { data: riscos },
       { data: checklist },
       { count: totalDiag },
-      { data: setoresEmpresa },
     ] = await Promise.all([
-      supabase.from('respostas_publicas').select('id', { count: 'exact', head: true }).eq('setor_id', setorAtivo.id),
-      supabase.from('riscos').select('fator, score').eq('setor_id', setorAtivo.id),
-      supabase.from('checklist_itens').select('id, texto, concluido, ordem').eq('setor_id', setorAtivo.id).order('ordem'),
-      supabase.from('diagnosticos').select('id', { count: 'exact', head: true }).eq('setor_id', setorAtivo.id),
-      supabase.from('setores').select('id, nome').eq('empresa_id', empresaAtiva.id),
+      setorIds.length
+        ? supabase.from('respostas_publicas').select('id', { count: 'exact', head: true }).in('setor_id', setorIds)
+        : { count: 0 },
+      setorIds.length
+        ? supabase.from('riscos').select('fator, score, setor_id').in('setor_id', setorIds)
+        : { data: [] },
+      supabase.from('checklist_itens').select('id, texto, concluido, ordem').eq('empresa_id', empresaAtiva.id).order('ordem'),
+      setorIds.length
+        ? supabase.from('diagnosticos').select('id', { count: 'exact', head: true }).in('setor_id', setorIds)
+        : { count: 0 },
     ])
 
-    // Mapa sf → score
-    const sfMap = {}
-    for (const r of riscos ?? []) sfMap[r.fator] = r.score
+    // Agrega riscos: média por subfator entre todos os setores
+    const sfAccum = {}
+    for (const r of riscos ?? []) {
+      if (!sfAccum[r.fator]) sfAccum[r.fator] = []
+      sfAccum[r.fator].push(r.score)
+    }
+    const sfMap = Object.fromEntries(
+      Object.entries(sfAccum).map(([sf, scores]) => [sf, scores.reduce((a,b) => a+b,0) / scores.length])
+    )
 
-    // Riscos críticos = subescalas com score = 5
-    const criticos = (riscos ?? []).filter(r => r.score === 5).length
-
-    // Checklist — itens e progresso
+    const criticos  = Object.values(sfMap).filter(v => v === 5).length
     const itens     = checklist ?? []
     const concluidos = itens.filter(i => i.concluido).length
 
-    // Alertas
     const alertas = []
     if ((totalRespostas ?? 0) > 0 && (totalRespostas ?? 0) < 5)
       alertas.push({ tipo: 'info',    texto: `Apenas ${totalRespostas} resposta(s) registrada(s). Recomenda-se mínimo de 5.` })
@@ -104,46 +124,52 @@ export default function DashboardPage() {
       alertas.push({ tipo: 'aviso',   texto: 'Contrato não marcado como assinado.' })
     if ((totalRespostas ?? 0) === 0)
       alertas.push({ tipo: 'aviso',   texto: 'Questionário ainda não aplicado.' })
-    if (!(riscos ?? []).length)
+    if (!Object.keys(sfMap).length)
       alertas.push({ tipo: 'aviso',   texto: 'Avaliação de riscos não preenchida.' })
     if (criticos > 0)
       alertas.push({ tipo: 'critico', texto: `${criticos} risco(s) crítico(s) identificado(s).` })
     if ((totalDiag ?? 0) === 0)
       alertas.push({ tipo: 'critico', texto: 'Diagnóstico não preenchido.' })
 
-    // Comparativo entre setores (apenas se ≥ 2 setores com riscos)
+    // Comparativo entre setores (≥ 2 setores com riscos)
     let comparativo = null
-    if ((setoresEmpresa ?? []).length >= 2) {
-      const outrosIds = setoresEmpresa.map(s => s.id)
-      const { data: todosRiscos } = await supabase
-        .from('riscos').select('setor_id, fator, score').in('setor_id', outrosIds)
-      if (todosRiscos?.length) {
-        // Agrupa por setor
-        const porSetor = {}
-        for (const s of setoresEmpresa) porSetor[s.id] = { nome: s.nome, sfMap: {} }
-        for (const r of todosRiscos) {
-          if (porSetor[r.setor_id]) porSetor[r.setor_id].sfMap[r.fator] = r.score
-        }
-        const setoresComDados = Object.values(porSetor).filter(s => Object.keys(s.sfMap).length > 0)
-        if (setoresComDados.length >= 2) comparativo = setoresComDados
+    if ((setoresEmpresa ?? []).length >= 2 && (riscos ?? []).length) {
+      const porSetor = {}
+      for (const s of setoresEmpresa) porSetor[s.id] = { nome: s.nome, sfMap: {} }
+      for (const r of riscos ?? []) {
+        if (porSetor[r.setor_id]) porSetor[r.setor_id].sfMap[r.fator] = r.score
       }
+      const comDados = Object.values(porSetor).filter(s => Object.keys(s.sfMap).length > 0)
+      if (comDados.length >= 2) comparativo = comDados
     }
 
-    setDados({ totalRespostas: totalRespostas ?? 0, criticos, itens, concluidos, alertas, sfMap, comparativo })
+    setDados({
+      totalRespostas: totalRespostas ?? 0,
+      totalSetores: (setoresEmpresa ?? []).length,
+      criticos, itens, concluidos, alertas, sfMap, comparativo,
+    })
     setLoading(false)
-  }, [setorAtivo, empresaAtiva])
+  }, [empresaAtiva?.id])
 
   useEffect(() => { load() }, [load])
 
-  if (!empresaAtiva || !setorAtivo) return (
-    <EmptyState icon="🏢" title="Selecione empresa e setor"
-      description="Use o menu superior para selecionar uma empresa e um setor."
-      action={<Link to="/empresas" className="btn-primary">Ir para Empresas</Link>} />
-  )
+  if (!empresaAtiva?.id) {
+    if (totalEmpresas === null) return <LoadingSpinner />
+    if (totalEmpresas === 0) return (
+      <EmptyState icon="🏢" title="Nenhuma empresa cadastrada"
+        description="Cadastre sua primeira empresa para começar a usar o sistema."
+        action={<Link to="/empresas" className="btn-primary">Cadastrar empresa</Link>} />
+    )
+    return (
+      <EmptyState icon="🏢" title="Selecione uma empresa"
+        description="Use o menu superior para escolher a empresa que deseja visualizar."
+        action={<Link to="/empresas" className="btn-primary">Ir para Empresas</Link>} />
+    )
+  }
 
   if (loading) return <LoadingSpinner />
 
-  const { totalRespostas, criticos, itens, concluidos, alertas, sfMap, comparativo } = dados ?? {}
+  const { totalRespostas, totalSetores, criticos, itens, concluidos, alertas, sfMap, comparativo } = dados ?? {}
   const totalItens = itens?.length ?? 0
 
   // Fases fixas do checklist (16 etapas divididas em 6 fases)
@@ -165,14 +191,14 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Dashboard" subtitle={`${empresaAtiva.nome} · ${setorAtivo.nome}`} />
+      <PageHeader title="Dashboard" subtitle={empresaAtiva.nome} />
 
       {/* ── Cards de métricas ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <InfoCard icon="🏢" label="Empresa ativa"   value={empresaAtiva.nome}       sub={empresaAtiva.setor_ramo} />
-        <InfoCard icon="🏬" label="Setor ativo"     value={setorAtivo.nome}         sub={setorAtivo.func_setor ? `${setorAtivo.func_setor} funcionários` : null} />
-        <InfoCard icon="📋" label="Respostas"        value={totalRespostas}          sub="questionários recebidos" />
-        <InfoCard icon="🚨" label="Riscos críticos"  value={criticos}               sub="subescalas com score 5" />
+        <InfoCard icon="🏢" label="Empresa"          value={empresaAtiva.nome}  sub={empresaAtiva.setor_ramo} />
+        <InfoCard icon="🏬" label="Setores"          value={totalSetores}       sub="setores cadastrados" />
+        <InfoCard icon="📋" label="Respostas"         value={totalRespostas}     sub="questionários recebidos" />
+        <InfoCard icon="🚨" label="Riscos críticos"   value={criticos}          sub="subescalas com score 5" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -277,8 +303,7 @@ export default function DashboardPage() {
                   <th className="text-left px-4 py-2.5 font-semibold text-muted">Domínio</th>
                   {comparativo.map(s => (
                     <th key={s.nome}
-                      className="px-4 py-2.5 font-semibold text-navy text-center whitespace-nowrap"
-                      style={s.nome === setorAtivo.nome ? { background: '#ddeeff' } : undefined}>
+                      className="px-4 py-2.5 font-semibold text-navy text-center whitespace-nowrap">
                       {s.nome}
                     </th>
                   ))}

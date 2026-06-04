@@ -1,8 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useEmpresa } from '@/hooks/useEmpresa'
-import { useSetorLocal } from '@/hooks/useSetorLocal'
-import { SetorSelect } from '@/components/ui/SetorSelect'
 import { nivelRisco } from '@/lib/perguntas'
 import { PageHeader, EmptyState, LoadingSpinner, Toast } from '@/components/ui'
 import { Link } from 'react-router-dom'
@@ -102,7 +100,6 @@ function CustomTooltip({ active, payload }) {
 
 export default function DiagnosticoPage() {
   const { empresaAtiva } = useEmpresa()
-  const { setores, setorId, setSetorId, nomeSetor } = useSetorLocal(empresaAtiva)
 
   const [sfMap, setSfMap]             = useState({})
   const [diag, setDiag]               = useState({ riscos_txt: '', protetores: '', recomendacoes: '', conclusao: '' })
@@ -115,19 +112,34 @@ export default function DiagnosticoPage() {
   const debounceRef                   = useRef({})
 
   const load = useCallback(async () => {
-    if (!setorId) return
+    if (!empresaAtiva) return
     setLoading(true)
 
-    const [{ data: riscos }, { data: diagData }, { count: totalSetores }] = await Promise.all([
-      supabase.from('riscos').select('fator, score, evidencias').eq('setor_id', setorId),
+    // Busca setores da empresa para agregar riscos
+    const { data: setoresEmp } = await supabase
+      .from('setores').select('id, nome').eq('empresa_id', empresaAtiva.id)
+    const setorIds = setoresEmp?.map(s => s.id) ?? []
+
+    const [{ data: todosRiscos }, { data: diagData }] = await Promise.all([
+      setorIds.length
+        ? supabase.from('riscos').select('fator, score, evidencias, setor_id').in('setor_id', setorIds)
+        : Promise.resolve({ data: [] }),
       supabase.from('diagnosticos').select('riscos_txt, protetores, recomendacoes, conclusao')
-        .eq('setor_id', setorId).maybeSingle(),
-      supabase.from('setores').select('id', { count: 'exact', head: true })
-        .eq('empresa_id', empresaAtiva?.id),
+        .eq('empresa_id', empresaAtiva.id).maybeSingle(),
     ])
 
+    // Agrega scores por fator (média entre setores)
+    const sfAgg = {}
+    const sfEv  = {}
+    for (const r of todosRiscos ?? []) {
+      if (!sfAgg[r.fator]) sfAgg[r.fator] = []
+      sfAgg[r.fator].push(r.score)
+      if (r.evidencias) sfEv[r.fator] = r.evidencias
+    }
     const mapa = {}
-    for (const r of riscos ?? []) mapa[r.fator] = r.score
+    for (const [fator, scores] of Object.entries(sfAgg)) {
+      mapa[fator] = parseFloat((scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2))
+    }
     setSfMap(mapa)
 
     if (diagData) {
@@ -139,9 +151,9 @@ export default function DiagnosticoPage() {
       })
     }
 
-    setMultiSetor((totalSetores ?? 0) >= 2)
+    setMultiSetor((setoresEmp?.length ?? 0) >= 2)
     setLoading(false)
-  }, [setorId, empresaAtiva])
+  }, [empresaAtiva])
 
   useEffect(() => { load() }, [load])
 
@@ -153,10 +165,10 @@ export default function DiagnosticoPage() {
   }
 
   async function salvarCampo(campo, valor) {
-    if (!setorId) return
+    if (!empresaAtiva) return
     const { error } = await supabase.from('diagnosticos').upsert(
-      { setor_id: setorId, [campo]: valor },
-      { onConflict: 'setor_id' }
+      { empresa_id: empresaAtiva.id, [campo]: valor },
+      { onConflict: 'empresa_id' }
     )
     if (error) {
       setToast({ message: 'Erro ao salvar: ' + error.message, type: 'error' })
@@ -212,8 +224,8 @@ export default function DiagnosticoPage() {
   }
 
   if (!empresaAtiva) return (
-    <EmptyState icon="🏢" title="Selecione empresa e setor"
-      description="Use o menu superior para selecionar uma empresa e setor."
+    <EmptyState icon="🏢" title="Selecione uma empresa"
+      description="Use o menu superior para selecionar uma empresa."
       action={<Link to="/empresas" className="btn-primary">Ir para Empresas</Link>} />
   )
 
@@ -242,11 +254,7 @@ export default function DiagnosticoPage() {
 
   return (
     <div className="space-y-5">
-      <SetorSelect setores={setores} setorId={setorId} onChange={setSetorId} />
-      {!setorId ? (
-        <div className="card text-center py-10 text-muted text-sm">Selecione um setor acima para ver o diagnóstico.</div>
-      ) : <>
-      <PageHeader title="Diagnóstico" subtitle={nomeSetor} />
+      <PageHeader title="Diagnóstico" subtitle={empresaAtiva.nome} />
 
       {/* ── Visão Geral dos Riscos ── */}
       <div className="card">
@@ -435,7 +443,6 @@ export default function DiagnosticoPage() {
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      </> }
     </div>
   )
 }

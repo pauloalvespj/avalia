@@ -73,9 +73,8 @@ export default function CadastroPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex w-14 h-14 rounded-2xl bg-navy items-center justify-center text-2xl font-black text-white mb-4">A</div>
-          <h1 className="text-2xl font-black text-navy">Sistema Avalia</h1>
-          <p className="text-sm text-muted mt-1">Cadastro de Psicólogo</p>
+          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 36, color: '#1a2e4a', letterSpacing: 3 }}>AVALIARY</span>
+          <p className="text-sm text-muted mt-2">Cadastro de Psicólogo</p>
         </div>
 
         <div className="card">

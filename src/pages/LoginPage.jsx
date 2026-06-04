@@ -32,18 +32,16 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex w-14 h-14 rounded-2xl bg-navy items-center justify-center text-2xl font-black text-white mb-4">A</div>
-          <h1 className="text-2xl font-black text-navy">Sistema Avalia</h1>
-          <p className="text-sm text-muted mt-1">Área do Psicólogo</p>
+          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 36, color: '#1a2e4a', letterSpacing: 3 }}>AVALIARY</span>
+          <p className="text-sm text-muted mt-2">Área do Psicólogo</p>
         </div>
 
         <div className="card">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label">E-mail</label>
-              <input type="email" className="input" placeholder="consultor@integra.com.br"
-                value={email} onChange={e => setEmail(e.target.value)} required autoFocus
-                placeholder="psicologo@email.com" />
+              <input type="email" className="input" placeholder="psicologo@email.com"
+                value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
             </div>
             <div>
               <label className="label">Senha</label>

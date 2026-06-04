@@ -11,7 +11,7 @@ const VAZIO = {
   nome_consultoria: '', cnpj: '', logo_url: '', slogan: '',
   email_comercial: '', telefone: '', site: '', endereco: '',
   responsavel_nome: '', responsavel_crp: '', responsavel_especializacao: '',
-  nome_sistema: 'PsiAvalia', cor_primaria: '#3a7bd5',
+  nome_sistema: 'Avaliary', cor_primaria: '#3a7bd5',
   rodape: '', metodologia: METODOLOGIA_PADRAO, assinatura_url: '',
 }
 

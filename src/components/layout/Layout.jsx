@@ -147,8 +147,9 @@ export default function Layout() {
         </button>
 
         {/* Logo */}
-        <div className="font-black text-white text-base tracking-tight whitespace-nowrap">
-          Sistema <span style={{ color: '#e8a020' }}>Avalia</span>
+        <div className="flex flex-col items-center">
+          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, color: '#fff', letterSpacing: 3, lineHeight: 1 }}>AVALIARY</span>
+          <div style={{ width: '70%', height: 2, background: '#F5A623', borderRadius: 1, marginTop: 3 }} />
         </div>
 
         {/* Separador */}

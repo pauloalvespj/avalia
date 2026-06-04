@@ -94,10 +94,10 @@ create table if not exists public.acoes (
   updated_at    timestamptz not null default now()
 );
 
--- OKRs
+-- OKRs (por empresa)
 create table if not exists public.okrs (
   id          uuid primary key default gen_random_uuid(),
-  setor_id    uuid not null references public.setores(id) on delete cascade,
+  empresa_id  uuid not null references public.empresas(id) on delete cascade,
   objetivo    text not null,
   prazo       date,
   created_at  timestamptz not null default now()
@@ -122,14 +122,18 @@ create table if not exists public.kpis (
   updated_at  timestamptz not null default now()
 );
 
--- Checklist do projeto
+-- Checklist do projeto (por empresa, não por setor)
 create table if not exists public.checklist_itens (
-  id          uuid primary key default gen_random_uuid(),
-  setor_id    uuid not null references public.setores(id) on delete cascade,
-  texto       text not null,
-  concluido   boolean not null default false,
-  ordem       int default 0,
-  updated_at  timestamptz not null default now()
+  id               uuid primary key default gen_random_uuid(),
+  empresa_id       uuid not null references public.empresas(id) on delete cascade,
+  fase             int  not null default 0,
+  ordem            int  not null default 0,
+  texto            text not null,
+  concluido        boolean not null default false,
+  semana_prevista  text,
+  observacao       text,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
 );
 
 -- ============================================================
@@ -178,12 +182,12 @@ create policy "resp_pub_insert"  on public.respostas_publicas for insert to anon
 create policy "resp_pub_select"  on public.respostas_publicas for select  to authenticated using (true);
 create policy "resp_pub_update"  on public.respostas_publicas for update  to authenticated using (true);
 
--- Demais tabelas: acesso via cadeia setor → empresa → consultor
+-- Tabelas por setor: acesso via cadeia setor → empresa → consultor
 do $$
 declare
   t text;
 begin
-  foreach t in array array['riscos','diagnosticos','acoes','okrs','kpis','checklist_itens']
+  foreach t in array array['riscos','diagnosticos','acoes','kpis']
   loop
     execute format($f$
       create policy "%s_owner" on public.%s
@@ -196,13 +200,27 @@ begin
   end loop;
 end$$;
 
--- key_results: via okr → setor → empresa → consultor
+-- OKRs: acesso direto por empresa → consultor
+create policy "okrs_owner" on public.okrs
+  for all
+  using (empresa_id in (select id from public.empresas where consultor_id = auth.uid()))
+  with check (empresa_id in (select id from public.empresas where consultor_id = auth.uid()));
+
+-- Checklist: acesso direto por empresa → consultor
+create policy "checklist_itens_owner" on public.checklist_itens
+  using (empresa_id in (select id from public.empresas where consultor_id = auth.uid()))
+  with check (empresa_id in (select id from public.empresas where consultor_id = auth.uid()));
+
+-- key_results: via okr → empresa → consultor
 create policy "kr_owner" on public.key_results
+  for all
   using (okr_id in (
-    select o.id from public.okrs o
-    join public.setores s on s.id = o.setor_id
-    join public.empresas e on e.id = s.empresa_id
-    where e.consultor_id = auth.uid()
+    select id from public.okrs
+    where empresa_id in (select id from public.empresas where consultor_id = auth.uid())
+  ))
+  with check (okr_id in (
+    select id from public.okrs
+    where empresa_id in (select id from public.empresas where consultor_id = auth.uid())
   ));
 
 -- ============================================================

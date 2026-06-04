@@ -70,21 +70,9 @@ function Campo({ label, value }) {
 export default function RelatorioPage() {
   const { empresaAtiva } = useEmpresa()
 
-  const [setores, setSetores]     = useState([])
-  const [setorSel, setSetorSel]   = useState(null)
-  const [dados, setDados]         = useState(null)
-  const [config, setConfig]       = useState(null)
-  const [loading, setLoading]     = useState(false)
-
-  // Carrega setores da empresa
-  useEffect(() => {
-    if (!empresaAtiva) return
-    supabase.from('setores').select('id, nome').eq('empresa_id', empresaAtiva.id).order('nome')
-      .then(({ data }) => {
-        setSetores(data ?? [])
-        // não auto-seleciona — padrão é "Todos" (null)
-      })
-  }, [empresaAtiva])
+  const [dados, setDados]     = useState(null)
+  const [config, setConfig]   = useState(null)
+  const [loading, setLoading] = useState(false)
 
   // Carrega configurações da consultoria
   useEffect(() => {
@@ -93,39 +81,77 @@ export default function RelatorioPage() {
   }, [])
 
   const load = useCallback(async () => {
-    if (!setorSel || !empresaAtiva) return
+    if (!empresaAtiva?.id) return
     setLoading(true)
 
+    // 1. Carrega todos os setores da empresa
+    const { data: setoresData } = await supabase
+      .from('setores').select('id, nome, func_setor')
+      .eq('empresa_id', empresaAtiva.id).order('nome')
+
+    const setorIds = (setoresData ?? []).map(s => s.id)
+
+    // 2. Carrega todos os dados em paralelo
     const [
       { data: riscos },
-      { data: diag },
+      { data: diagData },
       { data: acoes },
       { data: okrsData },
       { data: krsData },
       { data: kpis },
-      { data: escuta },
+      { data: escutaData },
     ] = await Promise.all([
-      supabase.from('riscos').select('fator,score,nivel,evidencias').eq('setor_id', setorSel.id),
-      supabase.from('diagnosticos').select('*').eq('setor_id', setorSel.id).maybeSingle(),
-      supabase.from('acoes').select('*').eq('setor_id', setorSel.id).order('created_at'),
-      supabase.from('okrs').select('id,objetivo').eq('setor_id', setorSel.id).order('created_at'),
+      setorIds.length
+        ? supabase.from('riscos').select('fator,score,nivel,evidencias,setor_id').in('setor_id', setorIds)
+        : { data: [] },
+      setorIds.length
+        ? supabase.from('diagnosticos').select('*').in('setor_id', setorIds)
+        : { data: [] },
+      setorIds.length
+        ? supabase.from('acoes').select('*').in('setor_id', setorIds).order('created_at')
+        : { data: [] },
+      supabase.from('okrs').select('id,objetivo').eq('empresa_id', empresaAtiva.id).order('created_at'),
       supabase.from('key_results').select('*').order('created_at'),
-      supabase.from('kpis').select('*').eq('setor_id', setorSel.id).order('created_at'),
-      supabase.from('escuta').select('*').eq('setor_id', setorSel.id).maybeSingle(),
+      setorIds.length
+        ? supabase.from('kpis').select('*').in('setor_id', setorIds).order('created_at')
+        : { data: [] },
+      setorIds.length
+        ? supabase.from('escuta').select('*').in('setor_id', setorIds)
+        : { data: [] },
     ])
 
-    const sfMap = {}
-    const sfEv  = {}
-    for (const r of riscos ?? []) { sfMap[r.fator] = r.score; sfEv[r.fator] = r.evidencias }
+    // 3. Agrega riscos: média por subfator entre todos os setores
+    const sfAccum = {}
+    const sfEv    = {}
+    for (const r of riscos ?? []) {
+      if (!sfAccum[r.fator]) sfAccum[r.fator] = []
+      sfAccum[r.fator].push(r.score)
+      if (r.evidencias) sfEv[r.fator] = sfEv[r.fator] ? `${sfEv[r.fator]}; ${r.evidencias}` : r.evidencias
+    }
+    const sfMap = Object.fromEntries(
+      Object.entries(sfAccum).map(([sf, scores]) => [sf, scores.reduce((a,b) => a+b,0) / scores.length])
+    )
 
     const okrs = (okrsData ?? []).map(o => ({
       ...o,
       krs: (krsData ?? []).filter(k => k.okr_id === o.id),
     }))
 
-    setDados({ sfMap, sfEv, diag, acoes: acoes ?? [], okrs, kpis: kpis ?? [], escuta })
+    // Diagnósticos e escutas indexados por setor_id
+    const diagPorSetor   = Object.fromEntries((diagData ?? []).map(d => [d.setor_id, d]))
+    const escutaPorSetor = Object.fromEntries((escutaData ?? []).map(e => [e.setor_id, e]))
+
+    setDados({
+      sfMap, sfEv,
+      setores:       setoresData ?? [],
+      diagPorSetor,
+      escutaPorSetor,
+      acoes:         acoes ?? [],
+      okrs,
+      kpis:          kpis ?? [],
+    })
     setLoading(false)
-  }, [setorSel, empresaAtiva])
+  }, [empresaAtiva?.id])
 
   useEffect(() => { load() }, [load])
 
@@ -139,8 +165,8 @@ export default function RelatorioPage() {
   const e = empresaAtiva
   const corPrimaria = config?.cor_primaria ?? '#1a2e4a'
 
-  // Numeração dinâmica de seções (depende de escuta existir)
-  const temEscuta = !!dados?.escuta
+  // Tem escuta se qualquer setor tiver escuta preenchida
+  const temEscuta = dados ? Object.keys(dados.escutaPorSetor ?? {}).length > 0 : false
   const SEC = {
     perfil:      1,
     metodologia: 2,
@@ -153,7 +179,7 @@ export default function RelatorioPage() {
   }
 
   const rodape = config?.rodape ||
-    `${config?.nome_consultoria ?? 'PsiAvalia'} | Relatório de Riscos Psicossociais | ${dataAtual} | ${e.nome}${setorSel ? ` — ${setorSel.nome}` : ''}`
+    `${config?.nome_consultoria ?? 'Avaliary'} | Relatório de Riscos Psicossociais | ${dataAtual} | ${e.nome}`
 
   return (
     <>
@@ -185,36 +211,21 @@ export default function RelatorioPage() {
           <h1 className="text-xl font-black text-navy">Relatório</h1>
           <p className="text-sm text-muted">{e.nome}</p>
         </div>
-        <div className="flex items-center gap-3">
-          {setores.length > 0 && (
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-semibold text-navy whitespace-nowrap">Setor:</label>
-              <select className="input py-2 text-sm w-auto"
-                value={setorSel?.id ?? ''} onChange={ev => setSetorSel(setores.find(s => s.id === ev.target.value))}>
-                {setores.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
-              </select>
-            </div>
-          )}
-          <button className="btn-primary" onClick={() => window.print()}>
-            🖨️ Imprimir / Salvar PDF
-          </button>
-        </div>
+        <button className="btn-primary" onClick={() => window.print()}>
+          🖨️ Imprimir / Salvar PDF
+        </button>
       </div>
 
       {loading && <LoadingSpinner />}
 
-      {!loading && !setorSel && (
-        <div className="card text-center py-10 text-muted text-sm">Selecione um setor acima para gerar o relatório.</div>
-      )}
-
-      {!loading && dados && setorSel && (
+      {!loading && dados && (
         <div id="relatorio-print" className="bg-white rounded-2xl border border-border p-8 max-w-4xl space-y-0">
 
           {/* ── CAPA ── */}
           <section className="relatorio-secao flex flex-col items-center text-center py-12 min-h-[400px] justify-center gap-4">
             {config?.logo_url
               ? <img src={config.logo_url} alt="Logo" className="h-20 object-contain mb-2" />
-              : <div className="text-2xl font-black" style={{ color: corPrimaria }}>{config?.nome_consultoria ?? 'PsiAvalia'}</div>
+              : <div className="text-2xl font-black" style={{ color: corPrimaria }}>{config?.nome_consultoria ?? 'Avaliary'}</div>
             }
             {config?.nome_consultoria && <p className="text-lg font-bold text-navy">{config.nome_consultoria}</p>}
             <div className="my-4 border-t border-border w-32" />
@@ -222,7 +233,6 @@ export default function RelatorioPage() {
             <p className="text-sm text-muted">Baseado na metodologia COPSOQ II conforme NR-01</p>
             <div className="mt-4 space-y-1">
               <p className="text-base font-bold text-navy">{e.nome}</p>
-              {setorSel && <p className="text-sm text-muted">Setor: {setorSel.nome}</p>}
               <p className="text-sm text-muted">{dataAtual}</p>
             </div>
             {(config?.responsavel_nome || config?.responsavel_crp) && (
@@ -262,57 +272,60 @@ export default function RelatorioPage() {
             </p>
           </Secao>
 
-          {/* ── AVALIAÇÃO DE RISCOS ── */}
           {/* ── ESCUTA DA EQUIPE ── */}
-          {dados.escuta && (
+          {temEscuta && (
             <Secao titulo={`${SEC.escuta}. Escuta da Equipe`}>
-              {(dados.escuta.num_participantes || dados.escuta.data_entrevista) && (
-                <div className="flex gap-6 mb-4 text-sm no-break">
-                  {dados.escuta.num_participantes && (
-                    <Campo label="Participantes" value={`${dados.escuta.num_participantes} entrevistados`} />
-                  )}
-                  {dados.escuta.data_entrevista && (
-                    <Campo label="Data" value={new Date(dados.escuta.data_entrevista + 'T00:00:00').toLocaleDateString('pt-BR')} />
-                  )}
-                </div>
-              )}
-
-              {[
-                { key: 'clima',          nome: 'Clima e Relacionamentos' },
-                { key: 'lideranca',      nome: 'Liderança e Gestão' },
-                { key: 'carga',          nome: 'Carga e Organização do Trabalho' },
-                { key: 'saude',          nome: 'Saúde e Bem-Estar' },
-                { key: 'sentido',        nome: 'Sentido e Valores' },
-                { key: 'comportamentos', nome: 'Comportamentos Ofensivos' },
-              ].filter(e => dados.escuta[`${e.key}_sintese`] || dados.escuta[`${e.key}_atencao`])
-               .map(e => (
-                <div key={e.key} className="mb-4 no-break">
-                  <h3 className="text-sm font-bold text-navy mb-2 border-b border-border pb-1">{e.nome}</h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    {dados.escuta[`${e.key}_sintese`] && (
-                      <div>
-                        <p className="text-xs font-semibold text-muted mb-1">Síntese</p>
-                        <p className="text-gray-700 whitespace-pre-line">{dados.escuta[`${e.key}_sintese`]}</p>
+              {dados.setores.filter(s => dados.escutaPorSetor[s.id]).map(s => {
+                const esc = dados.escutaPorSetor[s.id]
+                return (
+                  <div key={s.id} className="mb-6">
+                    {dados.setores.length > 1 && (
+                      <h3 className="text-sm font-black text-navy mb-3 border-b border-border pb-1">
+                        Setor: {s.nome}
+                      </h3>
+                    )}
+                    {(esc.num_participantes || esc.data_entrevista) && (
+                      <div className="flex gap-6 mb-3 text-sm no-break">
+                        {esc.num_participantes && <Campo label="Participantes" value={`${esc.num_participantes} entrevistados`} />}
+                        {esc.data_entrevista && <Campo label="Data" value={new Date(esc.data_entrevista + 'T00:00:00').toLocaleDateString('pt-BR')} />}
                       </div>
                     )}
-                    {dados.escuta[`${e.key}_atencao`] && (
-                      <div>
-                        <p className="text-xs font-semibold text-muted mb-1">Pontos de atenção</p>
-                        <p className="text-gray-700 whitespace-pre-line">{dados.escuta[`${e.key}_atencao`]}</p>
+                    {[
+                      { key: 'clima',          nome: 'Clima e Relacionamentos' },
+                      { key: 'lideranca',      nome: 'Liderança e Gestão' },
+                      { key: 'carga',          nome: 'Carga e Organização do Trabalho' },
+                      { key: 'saude',          nome: 'Saúde e Bem-Estar' },
+                      { key: 'sentido',        nome: 'Sentido e Valores' },
+                      { key: 'comportamentos', nome: 'Comportamentos Ofensivos' },
+                    ].filter(t => esc[`${t.key}_sintese`] || esc[`${t.key}_atencao`])
+                     .map(t => (
+                      <div key={t.key} className="mb-4 no-break">
+                        <h4 className="text-sm font-bold text-navy mb-2 border-b border-border pb-1">{t.nome}</h4>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          {esc[`${t.key}_sintese`] && (
+                            <div>
+                              <p className="text-xs font-semibold text-muted mb-1">Síntese</p>
+                              <p className="text-gray-700 whitespace-pre-line">{esc[`${t.key}_sintese`]}</p>
+                            </div>
+                          )}
+                          {esc[`${t.key}_atencao`] && (
+                            <div>
+                              <p className="text-xs font-semibold text-muted mb-1">Pontos de atenção</p>
+                              <p className="text-gray-700 whitespace-pre-line">{esc[`${t.key}_atencao`]}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {esc.sintese_geral && (
+                      <div className="mt-3 no-break">
+                        <h4 className="text-sm font-bold text-navy mb-1">Síntese Geral</h4>
+                        <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{esc.sintese_geral}</p>
                       </div>
                     )}
                   </div>
-                </div>
-              ))}
-
-              {dados.escuta.sintese_geral && (
-                <div className="mt-3 no-break">
-                  <h3 className="text-sm font-bold text-navy mb-1">Síntese Geral</h3>
-                  <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
-                    {dados.escuta.sintese_geral}
-                  </p>
-                </div>
-              )}
+                )
+              })}
             </Secao>
           )}
 
@@ -406,22 +419,34 @@ export default function RelatorioPage() {
 
           {/* ── DIAGNÓSTICO ── */}
           <Secao titulo={`${SEC.diagnostico}. Diagnóstico`}>
-            {!dados.diag ? (
+            {Object.keys(dados.diagPorSetor).length === 0 ? (
               <p className="text-sm text-muted">Diagnóstico não preenchido.</p>
             ) : (
-              <div className="space-y-4 no-break">
-                {[
-                  { key:'riscos_txt',    label:'Principais riscos identificados' },
-                  { key:'protetores',    label:'Fatores protetores' },
-                  { key:'recomendacoes', label:'Recomendações' },
-                  { key:'conclusao',     label:'Conclusão' },
-                ].map(({ key, label }) => dados.diag[key] ? (
-                  <div key={key}>
-                    <h3 className="text-sm font-bold text-navy mb-1">{label}</h3>
-                    <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{dados.diag[key]}</p>
+              dados.setores.filter(s => dados.diagPorSetor[s.id]).map(s => {
+                const diag = dados.diagPorSetor[s.id]
+                return (
+                  <div key={s.id} className="mb-6">
+                    {dados.setores.length > 1 && (
+                      <h3 className="text-sm font-black text-navy mb-3 border-b border-border pb-1">
+                        Setor: {s.nome}
+                      </h3>
+                    )}
+                    <div className="space-y-4 no-break">
+                      {[
+                        { key:'riscos_txt',    label:'Principais riscos identificados' },
+                        { key:'protetores',    label:'Fatores protetores' },
+                        { key:'recomendacoes', label:'Recomendações' },
+                        { key:'conclusao',     label:'Conclusão' },
+                      ].map(({ key, label }) => diag[key] ? (
+                        <div key={key}>
+                          <h4 className="text-sm font-bold text-navy mb-1">{label}</h4>
+                          <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{diag[key]}</p>
+                        </div>
+                      ) : null)}
+                    </div>
                   </div>
-                ) : null)}
-              </div>
+                )
+              })
             )}
           </Secao>
 

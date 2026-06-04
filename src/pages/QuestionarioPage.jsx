@@ -211,7 +211,7 @@ export default function QuestionarioPage() {
           </div>
         </div>
 
-        <p className="text-center text-xs text-muted mt-6">Sistema Avalia</p>
+        <p className="text-center text-xs text-muted mt-6">Avaliary</p>
       </div>
     </div>
   )

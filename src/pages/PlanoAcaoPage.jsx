@@ -311,7 +311,7 @@ export default function PlanoAcaoPage() {
 
   if (!empresaAtiva) return (
     <EmptyState icon="🏢" title="Selecione uma empresa"
-      description="Use o menu superior para selecionar uma empresa e setor."
+      description="Use o menu superior para selecionar uma empresa."
       action={<Link to="/empresas" className="btn-primary">Ir para Empresas</Link>} />
   )
 

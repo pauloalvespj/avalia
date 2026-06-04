@@ -6,7 +6,7 @@ import { SetorSelect } from '@/components/ui/SetorSelect'
 import { PageHeader, EmptyState, LoadingSpinner, Toast, ConfirmModal } from '@/components/ui'
 import { Link } from 'react-router-dom'
 
-// ── Seeds ───────────────────────────────────────────────────────────────────
+// ── Seeds ────────────────────────────────────────────────────────────────────
 
 const OKRS_SEED = [
   {
@@ -21,14 +21,14 @@ const OKRS_SEED = [
     objetivo: 'Promover saúde mental e bem-estar dos colaboradores',
     krs: [
       'Reduzir absenteísmo em 20% em 12 meses',
-      'Aumentar score de satisfação no trabalho (sf18) de X para Y',
+      'Aumentar score de satisfação no trabalho (sf18)',
       'Realizar 4 ações de promoção de saúde no período',
     ],
   },
   {
     objetivo: 'Fortalecer a cultura organizacional e liderança',
     krs: [
-      'Elevar score de Qualidade da Liderança (sf12) para nível baixo (≤2)',
+      'Elevar score de Qualidade da Liderança (sf12) para nível baixo',
       'Implementar programa de desenvolvimento de liderança',
       'Reduzir conflitos reportados em 30%',
     ],
@@ -36,36 +36,33 @@ const OKRS_SEED = [
 ]
 
 const KPIS_SEED = [
-  { nome: 'Taxa de rotatividade (%)',     baseline: '', atual: '', meta: '' },
-  { nome: 'Absenteísmo (dias/mês)',        baseline: '', atual: '', meta: '' },
-  { nome: 'Atestados emitidos (qtd/mês)', baseline: '', atual: '', meta: '' },
-  { nome: 'Score médio de burnout (sf23)',baseline: '', atual: '', meta: '' },
-  { nome: 'Score médio de stress (sf24)', baseline: '', atual: '', meta: '' },
-  { nome: 'Satisfação geral (sf18)',      baseline: '', atual: '', meta: '' },
+  { nome: 'Taxa de rotatividade (%)',      baseline: '', atual: '', meta: '' },
+  { nome: 'Absenteísmo (dias/mês)',         baseline: '', atual: '', meta: '' },
+  { nome: 'Atestados emitidos (qtd/mês)',  baseline: '', atual: '', meta: '' },
+  { nome: 'Score médio de burnout (sf23)', baseline: '', atual: '', meta: '' },
+  { nome: 'Score médio de stress (sf24)',  baseline: '', atual: '', meta: '' },
+  { nome: 'Satisfação geral (sf18)',       baseline: '', atual: '', meta: '' },
 ]
 
-// ── Utilidades ──────────────────────────────────────────────────────────────
+// ── Utilitários ──────────────────────────────────────────────────────────────
+
+let _lid = 1
+function lid() { return `_l${_lid++}` }
 
 function mediaProgresso(krs) {
   if (!krs?.length) return 0
   return Math.round(krs.reduce((s, k) => s + (k.progresso ?? 0), 0) / krs.length)
 }
 
-// Determina direção do KPI (melhorar = depende do tipo, simplificamos: atual >= meta = bom para scores, atual <= meta = bom para rotatividade)
-// Usamos seta simples: se atual >= meta → verde ▲, se atual < meta → vermelho ▼ (para KPIs de melhoria)
-// Para os 3 primeiros KPIs (rotatividade, absenteísmo, atestados), menor = melhor.
 function setaKpi(nome, atual, meta) {
   if (atual === '' || meta === '' || atual == null || meta == null) return null
-  const a = parseFloat(atual)
-  const m = parseFloat(meta)
+  const a = parseFloat(atual), m = parseFloat(meta)
   if (isNaN(a) || isNaN(m)) return null
-  const menorMelhor = nome.includes('rotatividade') || nome.includes('Absenteísmo') ||
-                      nome.includes('absenteísmo') || nome.includes('Atestados') || nome.includes('atestados')
-  const melhorando = menorMelhor ? a <= m : a >= m
-  return melhorando ? '▲' : '▼'
+  const menorMelhor = /rotatividade|absenteísmo|atestados/i.test(nome)
+  return (menorMelhor ? a <= m : a >= m) ? '▲' : '▼'
 }
 
-// ── Componente KR ───────────────────────────────────────────────────────────
+// ── Componente KR ────────────────────────────────────────────────────────────
 
 function KRRow({ kr, onChange, onDelete }) {
   return (
@@ -97,7 +94,7 @@ function KRRow({ kr, onChange, onDelete }) {
   )
 }
 
-// ── Componente OKR ──────────────────────────────────────────────────────────
+// ── Componente OKR ───────────────────────────────────────────────────────────
 
 function OKRCard({ okr, onChangeObjetivo, onChangeKR, onAddKR, onDeleteKR, onDelete }) {
   const pct = mediaProgresso(okr.krs)
@@ -115,7 +112,6 @@ function OKRCard({ okr, onChangeObjetivo, onChangeKR, onAddKR, onDeleteKR, onDel
           onClick={onDelete} title="Excluir OKR">🗑</button>
       </div>
 
-      {/* Barra de progresso */}
       <div className="flex items-center gap-2 mb-4">
         <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
           <div className="h-full rounded-full transition-all duration-300"
@@ -124,43 +120,37 @@ function OKRCard({ okr, onChangeObjetivo, onChangeKR, onAddKR, onDeleteKR, onDel
         <span className="text-xs font-bold text-navy w-8 text-right">{pct}%</span>
       </div>
 
-      {/* Key Results */}
       <div className="mb-3">
         {okr.krs.map((kr, i) => (
-          <KRRow key={kr._localId ?? kr.id ?? i} kr={kr}
+          <KRRow key={kr._lid ?? kr.id ?? i} kr={kr}
             onChange={updated => onChangeKR(i, updated)}
             onDelete={() => onDeleteKR(i)} />
         ))}
       </div>
 
-      <button
-        className="text-xs text-primary font-semibold hover:underline"
-        onClick={onAddKR}>
+      <button className="text-xs text-primary font-semibold hover:underline" onClick={onAddKR}>
         + Adicionar Key Result
       </button>
     </div>
   )
 }
 
-// ── Componente KPI Table ─────────────────────────────────────────────────────
+// ── Componente tabela KPI ────────────────────────────────────────────────────
 
 function KPITable({ kpis, onChange, onAdd, onDelete }) {
-  const [editCell, setEditCell] = useState(null) // { row, col }
+  const [editCell, setEditCell] = useState(null)
 
   function Cell({ row, col, value }) {
     const isEditing = editCell?.row === row && editCell?.col === col
-    if (isEditing) {
-      return (
-        <input
-          autoFocus
-          className="w-full text-center text-sm border border-primary rounded px-1 py-0.5 outline-none"
-          value={value ?? ''}
-          onChange={e => onChange(row, col, e.target.value)}
-          onBlur={() => setEditCell(null)}
-          onKeyDown={e => e.key === 'Enter' && setEditCell(null)}
-        />
-      )
-    }
+    if (isEditing) return (
+      <input autoFocus
+        className="w-full text-center text-sm border border-primary rounded px-1 py-0.5 outline-none"
+        value={value ?? ''}
+        onChange={e => onChange(row, col, e.target.value)}
+        onBlur={() => setEditCell(null)}
+        onKeyDown={e => e.key === 'Enter' && setEditCell(null)}
+      />
+    )
     return (
       <span className="cursor-pointer hover:text-primary transition-colors"
         onClick={() => setEditCell({ row, col })}>
@@ -186,20 +176,12 @@ function KPITable({ kpis, onChange, onAdd, onDelete }) {
           {kpis.map((kpi, i) => {
             const seta = setaKpi(kpi.nome, kpi.atual, kpi.meta)
             return (
-              <tr key={kpi._localId ?? kpi.id ?? i}
+              <tr key={kpi._lid ?? kpi.id ?? i}
                 className="border-b border-border last:border-0 hover:bg-bg/50 transition-colors">
-                <td className="px-4 py-3">
-                  <Cell row={i} col="nome" value={kpi.nome} />
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <Cell row={i} col="baseline" value={kpi.baseline} />
-                </td>
-                <td className="px-4 py-3 text-center font-semibold text-navy">
-                  <Cell row={i} col="atual" value={kpi.atual} />
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <Cell row={i} col="meta" value={kpi.meta} />
-                </td>
+                <td className="px-4 py-3"><Cell row={i} col="nome" value={kpi.nome} /></td>
+                <td className="px-4 py-3 text-center"><Cell row={i} col="baseline" value={kpi.baseline} /></td>
+                <td className="px-4 py-3 text-center font-semibold text-navy"><Cell row={i} col="atual" value={kpi.atual} /></td>
+                <td className="px-4 py-3 text-center"><Cell row={i} col="meta" value={kpi.meta} /></td>
                 <td className="px-4 py-3 text-center">
                   {seta === '▲' && <span className="text-success font-bold text-base">▲</span>}
                   {seta === '▼' && <span className="text-danger  font-bold text-base">▼</span>}
@@ -212,7 +194,6 @@ function KPITable({ kpis, onChange, onAdd, onDelete }) {
               </tr>
             )
           })}
-          {/* Linha de adicionar */}
           <tr>
             <td colSpan={6} className="px-4 py-2.5">
               <button className="text-xs text-primary font-semibold hover:underline" onClick={onAdd}>
@@ -228,87 +209,104 @@ function KPITable({ kpis, onChange, onAdd, onDelete }) {
 
 // ── Página principal ─────────────────────────────────────────────────────────
 
-let _localIdCounter = 1
-function localId() { return `_local_${_localIdCounter++}` }
-
 export default function OkrsPage() {
-  const { empresaAtiva } = useEmpresa()
-  const { setores, setorId, setSetorId, nomeSetor } = useSetorLocal(empresaAtiva)
+  const { empresaAtiva }                              = useEmpresa()
+  const { setores, setorId, setSetorId, nomeSetor }   = useSetorLocal(empresaAtiva)
 
-  const [okrs, setOkrs]       = useState([])    // [{ id, _localId, objetivo, krs: [...] }]
-  const [kpis, setKpis]       = useState([])
-  const [loading, setLoading] = useState(false)
-  const [savedMsg, setSavedMsg] = useState('')
+  // Estado OKRs (escopo: empresa)
+  const [okrs, setOkrs]             = useState([])
+  const [loadingOkrs, setLoadingOkrs] = useState(false)
   const [deletingOkr, setDeletingOkr] = useState(null)
-  const [toast, setToast]     = useState(null)
-  const debounceOkr = useRef({})
-  const debounceKpi = useRef({})
 
-  // ── Load ──────────────────────────────────────────────────────────────────
+  // Estado KPIs (escopo: setor)
+  const [kpis, setKpis]             = useState([])
+  const [loadingKpis, setLoadingKpis] = useState(false)
 
-  const load = useCallback(async () => {
-    if (!setorId) return
-    setLoading(true)
+  const [savedMsg, setSavedMsg] = useState('')
+  const [toast, setToast]       = useState(null)
+  const debOkr = useRef({})
+  const debKpi = useRef({})
 
-    const [{ data: okrsData }, { data: krsData }, { data: kpisData }] = await Promise.all([
-      supabase.from('okrs').select('id, objetivo, prazo').eq('setor_id', setorId).order('created_at'),
+  // ── Carregar OKRs ──────────────────────────────────────────────────────────
+
+  const loadOkrs = useCallback(async () => {
+    if (!empresaAtiva?.id) return
+    setLoadingOkrs(true)
+
+    const [{ data: okrsData }, { data: krsData }] = await Promise.all([
+      supabase.from('okrs').select('id, objetivo, prazo').eq('empresa_id', empresaAtiva.id).order('created_at'),
       supabase.from('key_results').select('id, okr_id, texto, progresso').order('created_at'),
-      supabase.from('kpis').select('id, nome, baseline, atual, meta').eq('setor_id', setorId).order('created_at'),
     ])
 
-    // Monta OKRs com seus KRs
     if (okrsData?.length) {
-      const lista = okrsData.map(o => ({
-        ...o,
-        _localId: localId(),
-        krs: (krsData ?? []).filter(k => k.okr_id === o.id).map(k => ({ ...k, _localId: localId() })),
-      }))
-      setOkrs(lista)
+      setOkrs(okrsData.map(o => ({
+        ...o, _lid: lid(),
+        krs: (krsData ?? []).filter(k => k.okr_id === o.id).map(k => ({ ...k, _lid: lid() })),
+      })))
+      setLoadingOkrs(false)
     } else {
-      // Seed automático
-      await seedOkrs(setorId)
-      return
+      await seedOkrs()
     }
+  }, [empresaAtiva?.id])
 
-    if (kpisData?.length) {
-      setKpis(kpisData.map(k => ({ ...k, _localId: localId() })))
-    } else {
-      await seedKpis(setorId)
-      return
-    }
+  useEffect(() => { loadOkrs() }, [loadOkrs])
 
-    setLoading(false)
-  }, [setorId])
-
-  useEffect(() => { load() }, [load])
-
-  // ── Seeds ─────────────────────────────────────────────────────────────────
-
-  async function seedOkrs(setorId) {
+  async function seedOkrs() {
     for (const seed of OKRS_SEED) {
       const { data: okr, error } = await supabase
-        .from('okrs').insert({ setor_id: setorId, objetivo: seed.objetivo }).select('id').single()
+        .from('okrs').insert({ empresa_id: empresaAtiva.id, objetivo: seed.objetivo }).select('id').single()
       if (error || !okr) continue
       await supabase.from('key_results').insert(
         seed.krs.map(texto => ({ okr_id: okr.id, texto, progresso: 0 }))
       )
     }
-    load()
+    loadOkrs()
   }
 
-  async function seedKpis(setorId) {
-    await supabase.from('kpis').insert(
+  // ── Carregar KPIs ──────────────────────────────────────────────────────────
+
+  const loadKpis = useCallback(async () => {
+    if (!setorId) { setKpis([]); return }
+    setLoadingKpis(true)
+
+    const { data, error } = await supabase
+      .from('kpis').select('id, nome, baseline, atual, meta')
+      .eq('setor_id', setorId).order('created_at')
+
+    if (error) {
+      setToast({ message: 'Erro ao carregar KPIs: ' + error.message, type: 'error' })
+      setLoadingKpis(false)
+      return
+    }
+
+    if (data?.length) {
+      setKpis(data.map(k => ({ ...k, _lid: lid() })))
+      setLoadingKpis(false)
+    } else {
+      await seedKpis()
+    }
+  }, [setorId])
+
+  useEffect(() => { loadKpis() }, [loadKpis])
+
+  async function seedKpis() {
+    const { error } = await supabase.from('kpis').insert(
       KPIS_SEED.map(k => ({ ...k, setor_id: setorId }))
     )
-    load()
+    if (error) {
+      setToast({ message: 'Erro ao criar KPIs: ' + error.message, type: 'error' })
+      setLoadingKpis(false)
+      return
+    }
+    loadKpis()
   }
 
-  // ── Auto-save OKR ─────────────────────────────────────────────────────────
+  // ── Auto-save OKR ──────────────────────────────────────────────────────────
 
   function agendarSaveOkr(okr) {
-    const key = okr.id ?? okr._localId
-    if (debounceOkr.current[key]) clearTimeout(debounceOkr.current[key])
-    debounceOkr.current[key] = setTimeout(() => persistirOkr(okr), 1000)
+    const key = okr.id ?? okr._lid
+    if (debOkr.current[key]) clearTimeout(debOkr.current[key])
+    debOkr.current[key] = setTimeout(() => persistirOkr(okr), 1000)
   }
 
   async function persistirOkr(okr) {
@@ -323,44 +321,40 @@ export default function OkrsPage() {
           .insert({ okr_id: okr.id, texto: kr.texto, progresso: kr.progresso ?? 0 }).select('id').single()
         if (data) {
           setOkrs(prev => prev.map(o => o.id === okr.id
-            ? { ...o, krs: o.krs.map(k => k._localId === kr._localId ? { ...k, id: data.id } : k) }
+            ? { ...o, krs: o.krs.map(k => k._lid === kr._lid ? { ...k, id: data.id } : k) }
             : o))
         }
       }
     }
-    flashSaved()
+    flash()
   }
 
-  // ── Auto-save KPI ─────────────────────────────────────────────────────────
+  // ── Auto-save KPI ──────────────────────────────────────────────────────────
 
   function agendarSaveKpi(kpi) {
-    const key = kpi.id ?? kpi._localId
-    if (debounceKpi.current[key]) clearTimeout(debounceKpi.current[key])
-    debounceKpi.current[key] = setTimeout(() => persistirKpi(kpi), 1000)
+    const key = kpi.id ?? kpi._lid
+    if (debKpi.current[key]) clearTimeout(debKpi.current[key])
+    debKpi.current[key] = setTimeout(() => persistirKpi(kpi), 1000)
   }
 
   async function persistirKpi(kpi) {
+    const campos = { nome: kpi.nome, baseline: kpi.baseline, atual: kpi.atual, meta: kpi.meta }
     if (kpi.id) {
-      await supabase.from('kpis')
-        .update({ nome: kpi.nome, baseline: kpi.baseline, atual: kpi.atual, meta: kpi.meta })
-        .eq('id', kpi.id)
+      await supabase.from('kpis').update(campos).eq('id', kpi.id)
     } else {
       const { data } = await supabase.from('kpis')
-        .insert({ setor_id: setorId, nome: kpi.nome, baseline: kpi.baseline, atual: kpi.atual, meta: kpi.meta })
-        .select('id').single()
-      if (data) {
-        setKpis(prev => prev.map(k => k._localId === kpi._localId ? { ...k, id: data.id } : k))
-      }
+        .insert({ ...campos, setor_id: setorId }).select('id').single()
+      if (data) setKpis(prev => prev.map(k => k._lid === kpi._lid ? { ...k, id: data.id } : k))
     }
-    flashSaved()
+    flash()
   }
 
-  function flashSaved() {
+  function flash() {
     setSavedMsg('Salvo ✓')
     setTimeout(() => setSavedMsg(''), 2000)
   }
 
-  // ── Mutações OKR ─────────────────────────────────────────────────────────
+  // ── Mutações OKR ──────────────────────────────────────────────────────────
 
   function handleObjetivo(idx, valor) {
     const updated = okrs.map((o, i) => i === idx ? { ...o, objetivo: valor } : o)
@@ -370,14 +364,13 @@ export default function OkrsPage() {
 
   function handleKR(okrIdx, krIdx, kr) {
     const updated = okrs.map((o, i) => i === okrIdx
-      ? { ...o, krs: o.krs.map((k, j) => j === krIdx ? kr : k) }
-      : o)
+      ? { ...o, krs: o.krs.map((k, j) => j === krIdx ? kr : k) } : o)
     setOkrs(updated)
     agendarSaveOkr(updated[okrIdx])
   }
 
   function handleAddKR(okrIdx) {
-    const novoKr = { _localId: localId(), texto: '', progresso: 0 }
+    const novoKr = { _lid: lid(), texto: '', progresso: 0 }
     const updated = okrs.map((o, i) => i === okrIdx ? { ...o, krs: [...o.krs, novoKr] } : o)
     setOkrs(updated)
     agendarSaveOkr(updated[okrIdx])
@@ -387,15 +380,14 @@ export default function OkrsPage() {
     const kr = okrs[okrIdx].krs[krIdx]
     if (kr.id) await supabase.from('key_results').delete().eq('id', kr.id)
     setOkrs(prev => prev.map((o, i) => i === okrIdx
-      ? { ...o, krs: o.krs.filter((_, j) => j !== krIdx) }
-      : o))
+      ? { ...o, krs: o.krs.filter((_, j) => j !== krIdx) } : o))
   }
 
   async function handleAddOkr() {
     const { data, error } = await supabase.from('okrs')
-      .insert({ setor_id: setorId, objetivo: '' }).select('id').single()
+      .insert({ empresa_id: empresaAtiva.id, objetivo: '' }).select('id').single()
     if (error) { setToast({ message: 'Erro: ' + error.message, type: 'error' }); return }
-    setOkrs(prev => [...prev, { id: data.id, _localId: localId(), objetivo: '', krs: [] }])
+    setOkrs(prev => [...prev, { id: data.id, _lid: lid(), objetivo: '', krs: [] }])
   }
 
   async function handleDeleteOkr(okr) {
@@ -403,7 +395,7 @@ export default function OkrsPage() {
       await supabase.from('key_results').delete().eq('okr_id', okr.id)
       await supabase.from('okrs').delete().eq('id', okr.id)
     }
-    setOkrs(prev => prev.filter(o => (o._localId ?? o.id) !== (okr._localId ?? okr.id)))
+    setOkrs(prev => prev.filter(o => (o._lid ?? o.id) !== (okr._lid ?? okr.id)))
     setDeletingOkr(null)
   }
 
@@ -416,7 +408,7 @@ export default function OkrsPage() {
   }
 
   function handleAddKpi() {
-    setKpis(prev => [...prev, { _localId: localId(), nome: '', baseline: '', atual: '', meta: '' }])
+    setKpis(prev => [...prev, { _lid: lid(), nome: '', baseline: '', atual: '', meta: '' }])
   }
 
   async function handleDeleteKpi(idx) {
@@ -427,68 +419,78 @@ export default function OkrsPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  if (!empresaAtiva) return (
+  if (!empresaAtiva?.id) return (
     <EmptyState icon="🏢" title="Selecione uma empresa"
       description="Use o menu superior para selecionar uma empresa."
       action={<Link to="/empresas" className="btn-primary">Ir para Empresas</Link>} />
   )
 
-  if (loading) return <LoadingSpinner />
-
-  if (!setorId) return (
-    <div>
-      <SetorSelect setores={setores} setorId={setorId} onChange={id => { setSetorId(id); setOkrs([]); setKpis([]) }} />
-      <div className="card text-center py-10 text-muted text-sm">Selecione um setor acima para ver os OKRs e KPIs.</div>
-    </div>
-  )
-
   return (
     <div className="space-y-6">
-      <SetorSelect setores={setores} setorId={setorId} onChange={id => { setSetorId(id); setOkrs([]); setKpis([]) }} />
       <PageHeader
         title="OKRs e KPIs"
-        subtitle={nomeSetor}
-        action={savedMsg
-          ? <span className="text-xs text-success font-semibold">{savedMsg}</span>
-          : null}
+        subtitle={empresaAtiva.nome}
+        action={savedMsg ? <span className="text-xs text-success font-semibold">{savedMsg}</span> : null}
       />
 
-      {/* ── OKRs ── */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-black text-navy">🎯 OKRs</h2>
-          <button className="btn-primary text-xs py-1.5 px-3" onClick={handleAddOkr}>
-            + Novo OKR
-          </button>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
-        {!okrs.length ? (
-          <EmptyState icon="🎯" title="Nenhum OKR" description="Clique em '+ Novo OKR' para começar." />
-        ) : (
-          <div className="space-y-4">
-            {okrs.map((okr, i) => (
-              <OKRCard key={okr._localId ?? okr.id}
-                okr={okr}
-                onChangeObjetivo={v => handleObjetivo(i, v)}
-                onChangeKR={(j, kr) => handleKR(i, j, kr)}
-                onAddKR={() => handleAddKR(i)}
-                onDeleteKR={j => handleDeleteKR(i, j)}
-                onDelete={() => setDeletingOkr(okr)}
-              />
-            ))}
+        {/* ── Coluna esquerda: OKRs (escopo: empresa) ────────────────────── */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-black text-navy">🎯 OKRs</h2>
+              <p className="text-xs text-muted mt-0.5">{empresaAtiva.nome}</p>
+            </div>
+            <button className="btn-primary text-xs py-1.5 px-3" onClick={handleAddOkr}>
+              + Novo OKR
+            </button>
           </div>
-        )}
-      </div>
 
-      {/* ── KPIs ── */}
-      <div>
-        <h2 className="text-base font-black text-navy mb-3">📊 KPIs</h2>
-        <KPITable
-          kpis={kpis}
-          onChange={handleKpiChange}
-          onAdd={handleAddKpi}
-          onDelete={handleDeleteKpi}
-        />
+          {loadingOkrs ? <LoadingSpinner /> : !okrs.length ? (
+            <EmptyState icon="🎯" title="Nenhum OKR" description="Clique em '+ Novo OKR' para começar." />
+          ) : (
+            <div className="space-y-4">
+              {okrs.map((okr, i) => (
+                <OKRCard key={okr._lid ?? okr.id}
+                  okr={okr}
+                  onChangeObjetivo={v => handleObjetivo(i, v)}
+                  onChangeKR={(j, kr) => handleKR(i, j, kr)}
+                  onAddKR={() => handleAddKR(i)}
+                  onDeleteKR={j => handleDeleteKR(i, j)}
+                  onDelete={() => setDeletingOkr(okr)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* ── Coluna direita: KPIs (escopo: setor) ───────────────────────── */}
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-base font-black text-navy">📊 KPIs</h2>
+            <p className="text-xs text-muted mt-0.5">{setorId ? nomeSetor : 'Selecione um setor'}</p>
+          </div>
+
+          <SetorSelect setores={setores} setorId={setorId}
+            onChange={id => { setSetorId(id); setKpis([]) }} />
+
+          {!setorId ? (
+            <div className="card text-center py-10 text-muted text-sm">
+              Selecione um setor acima para ver os KPIs.
+            </div>
+          ) : loadingKpis ? <LoadingSpinner /> : (
+            <div className="overflow-x-auto">
+              <KPITable
+                kpis={kpis}
+                onChange={handleKpiChange}
+                onAdd={handleAddKpi}
+                onDelete={handleDeleteKpi}
+              />
+            </div>
+          )}
+        </section>
+
       </div>
 
       {deletingOkr && (

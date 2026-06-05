@@ -40,6 +40,7 @@ const FORM_VAZIO = {
   titulo: '', tipo: '', empresa_id: '', setor_id: '', funcionario_id: '',
   data_hora: '', duracao: 60, modalidade: 'presencial',
   local_texto: '', link_reuniao: '', observacoes: '', status: 'pendente',
+  contabiliza_credito: true,
 }
 
 function formatDataHora(iso) {
@@ -112,11 +113,38 @@ function ModalAgendamento({ editando, empresas, onSave, onClose, saving }) {
         link_reuniao: editando.link_reuniao ?? '',
         observacoes: editando.observacoes ?? '',
         status: editando.status ?? 'pendente',
+        contabiliza_credito: editando.contabiliza_credito ?? true,
       }
     : { ...FORM_VAZIO }
   )
   const [setoresModal, setSetoresModal] = useState([])
   const [funcsModal, setFuncsModal] = useState([])
+  const [saldoCreditos, setSaldoCreditos] = useState(null)
+
+  useEffect(() => {
+    if (!form.empresa_id) { setSaldoCreditos(null); return }
+    supabase.from('pacotes_creditos')
+      .select('qtd_total, qtd_usada')
+      .eq('empresa_id', form.empresa_id)
+      .then(({ data }) => {
+        if (!data) { setSaldoCreditos(null); return }
+        setSaldoCreditos(data.reduce((acc, p) => acc + (p.qtd_total - p.qtd_usada), 0))
+      })
+  }, [form.empresa_id])
+
+  function abrirGoogleCalendar() {
+    const inicio = new Date(form.data_hora)
+    const fim = new Date(inicio.getTime() + (parseInt(form.duracao) || 60) * 60000)
+    const fmt = d => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: form.titulo || 'Agendamento',
+      dates: `${fmt(inicio)}/${fmt(fim)}`,
+      details: (form.observacoes ? form.observacoes + '\n\n' : '') +
+        'Ative "Adicionar videoconferência do Google Meet" ao salvar o evento no Google Calendar.',
+    })
+    window.open(`https://calendar.google.com/calendar/render?${params}`, '_blank')
+  }
 
   useEffect(() => {
     if (!form.empresa_id) { setSetoresModal([]); setFuncsModal([]); return }
@@ -210,8 +238,22 @@ function ModalAgendamento({ editando, empresas, onSave, onClose, saving }) {
         {mostraLink && (
           <div>
             <label className="label">Link da reunião</label>
-            <input className="input" placeholder="https://meet.google.com/..."
-              value={form.link_reuniao} onChange={f('link_reuniao')} />
+            <div className="flex gap-2">
+              <input className="input flex-1" placeholder="https://meet.google.com/..."
+                value={form.link_reuniao} onChange={f('link_reuniao')} />
+              {form.data_hora && (
+                <button type="button" className="btn-secondary text-xs flex-shrink-0 flex items-center gap-1"
+                  title="Abre o Google Calendar pré-preenchido — ative o Meet lá e cole o link aqui"
+                  onClick={abrirGoogleCalendar}>
+                  📅 Gerar Meet
+                </button>
+              )}
+            </div>
+            {form.data_hora && (
+              <p className="text-2xs text-muted mt-1">
+                Clique em "Gerar Meet" → crie o evento → ative a videoconferência → copie o link de volta aqui.
+              </p>
+            )}
           </div>
         )}
 
@@ -221,6 +263,19 @@ function ModalAgendamento({ editando, empresas, onSave, onClose, saving }) {
             <option value="">— Selecione —</option>
             {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
           </select>
+          {form.empresa_id && saldoCreditos !== null && (
+            <div className="mt-1.5 flex items-center justify-between">
+              <span className="text-xs font-semibold" style={{ color: saldoCreditos > 0 ? '#166534' : '#991b1b' }}>
+                💳 {saldoCreditos} crédito{saldoCreditos !== 1 ? 's' : ''} disponíve{saldoCreditos !== 1 ? 'is' : 'l'} nesta empresa
+              </span>
+              <label className="flex items-center gap-1.5 cursor-pointer text-xs text-navy">
+                <input type="checkbox" className="accent-primary"
+                  checked={form.contabiliza_credito}
+                  onChange={e => setForm(p => ({ ...p, contabiliza_credito: e.target.checked }))} />
+                Contabilizar crédito
+              </label>
+            </div>
+          )}
         </div>
 
         {form.empresa_id && (
@@ -320,6 +375,14 @@ function CardAgendamento({ ag, onEditar, onDeletar, onStatusChange }) {
             >
               {laudo.trim() ? '✓ Laudo' : '📋 Laudo'}
             </button>
+          )}
+          {ag.contabiliza_credito && (
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+              style={ag.credito_descontado
+                ? { background: '#f0fdf4', color: '#166534' }
+                : { background: '#fef9c3', color: '#854d0e' }}>
+              {ag.credito_descontado ? '💳 Descontado' : '💳 +1 crédito'}
+            </span>
           )}
           <select
             value={ag.status}
@@ -623,19 +686,20 @@ export default function AgendamentosPage() {
   async function handleSave(form) {
     setSaving(true)
     const payload = {
-      consultor_id:   user.id,
-      empresa_id:     form.empresa_id     || null,
-      setor_id:       form.setor_id       || null,
-      funcionario_id: form.funcionario_id || null,
-      titulo:         form.titulo.trim(),
-      tipo:           form.tipo           || null,
-      data_hora:      form.data_hora      || null,
-      duracao:        form.duracao        ? parseInt(form.duracao) : null,
-      modalidade:     form.modalidade,
-      local_texto:    form.local_texto    || null,
-      link_reuniao:   form.link_reuniao   || null,
-      observacoes:    form.observacoes    || null,
-      status:         form.status,
+      consultor_id:        user.id,
+      empresa_id:          form.empresa_id          || null,
+      setor_id:            form.setor_id            || null,
+      funcionario_id:      form.funcionario_id      || null,
+      titulo:              form.titulo.trim(),
+      tipo:                form.tipo                || null,
+      data_hora:           form.data_hora           || null,
+      duracao:             form.duracao             ? parseInt(form.duracao) : null,
+      modalidade:          form.modalidade,
+      local_texto:         form.local_texto         || null,
+      link_reuniao:        form.link_reuniao        || null,
+      observacoes:         form.observacoes         || null,
+      status:              form.status,
+      contabiliza_credito: form.contabiliza_credito ?? true,
     }
     let error
     if (editando) {
@@ -658,9 +722,31 @@ export default function AgendamentosPage() {
   }
 
   async function handleStatusChange(id, newStatus) {
-    const { error } = await supabase.from('agendamentos').update({ status: newStatus }).eq('id', id)
+    const ag = agendamentos.find(a => a.id === id)
+    let creditoDescontado = ag?.credito_descontado ?? false
+
+    // Debita crédito ao marcar como realizado (apenas uma vez)
+    if (newStatus === 'realizado' && ag?.contabiliza_credito && !ag?.credito_descontado && ag?.empresa_id) {
+      const { data: pacotes } = await supabase
+        .from('pacotes_creditos')
+        .select('id, qtd_total, qtd_usada')
+        .eq('empresa_id', ag.empresa_id)
+        .order('criado_em', { ascending: true })
+      const pacoteAtivo = pacotes?.find(p => p.qtd_usada < p.qtd_total)
+      if (pacoteAtivo) {
+        await supabase.from('pacotes_creditos')
+          .update({ qtd_usada: pacoteAtivo.qtd_usada + 1 })
+          .eq('id', pacoteAtivo.id)
+        creditoDescontado = true
+      } else {
+        setToast({ message: '⚠️ Nenhum pacote de crédito disponível para esta empresa.', type: 'info' })
+      }
+    }
+
+    const updateData = { status: newStatus, ...(creditoDescontado && !ag?.credito_descontado ? { credito_descontado: true } : {}) }
+    const { error } = await supabase.from('agendamentos').update(updateData).eq('id', id)
     if (error) { setToast({ message: 'Erro ao atualizar status: ' + error.message, type: 'error' }); return }
-    setAgendamentos(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a))
+    setAgendamentos(prev => prev.map(a => a.id === id ? { ...a, status: newStatus, credito_descontado: creditoDescontado } : a))
   }
 
   const filtered = agendamentos

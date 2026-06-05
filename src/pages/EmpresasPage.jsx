@@ -5,6 +5,125 @@ import { useAuth } from '@/hooks/useAuth'
 import { useEmpresa } from '@/hooks/useEmpresa'
 import { PageHeader, Modal, EmptyState, LoadingSpinner, Toast, ConfirmModal } from '@/components/ui'
 
+// ── Pacotes de Créditos ───────────────────────────────────────────────────────
+
+function CreditosSection({ empresaId }) {
+  const { user } = useAuth()
+  const [pacotes, setPacotes] = useState([])
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState({ qtd_total: '', descricao: '', validade: '' })
+  const [saving, setSaving] = useState(false)
+
+  async function load() {
+    const { data } = await supabase.from('pacotes_creditos')
+      .select('*').eq('empresa_id', empresaId).order('criado_em', { ascending: false })
+    setPacotes(data ?? [])
+  }
+
+  useEffect(() => { load() }, [empresaId])
+
+  const saldo = pacotes.reduce((acc, p) => acc + (p.qtd_total - p.qtd_usada), 0)
+  const total = pacotes.reduce((acc, p) => acc + p.qtd_total, 0)
+
+  async function handleAdd() {
+    if (!form.qtd_total) return
+    setSaving(true)
+    const { error } = await supabase.from('pacotes_creditos').insert({
+      empresa_id: empresaId, consultor_id: user.id,
+      qtd_total: parseInt(form.qtd_total),
+      descricao: form.descricao || null,
+      validade: form.validade || null,
+    })
+    setSaving(false)
+    if (!error) { setShowForm(false); setForm({ qtd_total: '', descricao: '', validade: '' }); load() }
+  }
+
+  async function handleDelete(id) {
+    await supabase.from('pacotes_creditos').delete().eq('id', id)
+    load()
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-bold text-muted uppercase tracking-widest">Créditos de Consultas</span>
+        <button className="btn-secondary text-xs" onClick={() => setShowForm(v => !v)}>
+          {showForm ? '✕ Cancelar' : '+ Adicionar pacote'}
+        </button>
+      </div>
+
+      <div className="flex items-center gap-3 mb-3 p-3 rounded-xl" style={{ background: '#f0f9ff', border: '1px solid #bae6fd' }}>
+        <span className="text-2xl font-black" style={{ color: '#0369a1' }}>{saldo}</span>
+        <div>
+          <div className="text-xs font-semibold text-navy">créditos disponíveis</div>
+          <div className="text-xs text-muted">de {total} contratados</div>
+        </div>
+      </div>
+
+      {showForm && (
+        <div className="mb-3 p-3 rounded-xl space-y-3" style={{ border: '1px solid #e2e8f0' }}>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Qtd. de consultas *</label>
+              <input className="input" type="number" min={1} placeholder="Ex: 10"
+                value={form.qtd_total} onChange={e => setForm(p => ({ ...p, qtd_total: e.target.value }))} autoFocus />
+            </div>
+            <div>
+              <label className="label">Validade</label>
+              <input className="input" type="date" value={form.validade}
+                onChange={e => setForm(p => ({ ...p, validade: e.target.value }))} />
+            </div>
+          </div>
+          <div>
+            <label className="label">Descrição</label>
+            <input className="input" placeholder="Ex: Pacote Junho 2026"
+              value={form.descricao} onChange={e => setForm(p => ({ ...p, descricao: e.target.value }))} />
+          </div>
+          <div className="flex justify-end">
+            <button className="btn-primary text-xs" disabled={saving || !form.qtd_total} onClick={handleAdd}>
+              {saving ? 'Salvando...' : 'Confirmar pacote'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {pacotes.length === 0 && !showForm ? (
+        <p className="text-xs text-muted text-center py-2">Nenhum pacote cadastrado</p>
+      ) : (
+        <div className="space-y-2">
+          {pacotes.map(p => {
+            const pSaldo = p.qtd_total - p.qtd_usada
+            const pct = p.qtd_total > 0 ? Math.round((p.qtd_usada / p.qtd_total) * 100) : 0
+            return (
+              <div key={p.id} className="flex items-center gap-3 p-2 rounded-lg" style={{ border: '1px solid #e2e8f0' }}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold text-navy">{p.descricao || 'Pacote'}</span>
+                    <span className="text-xs font-bold" style={{ color: pSaldo > 0 ? '#166534' : '#991b1b' }}>
+                      {pSaldo}/{p.qtd_total} restantes
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1.5">
+                    <div className="h-1.5 rounded-full transition-all"
+                      style={{ width: `${pct}%`, background: pSaldo > 0 ? '#3a7bd5' : '#ef4444' }} />
+                  </div>
+                  {p.validade && (
+                    <div className="text-2xs text-muted mt-0.5">
+                      Válido até {new Date(p.validade + 'T00:00:00').toLocaleDateString('pt-BR')}
+                    </div>
+                  )}
+                </div>
+                <button className="text-danger hover:bg-red-50 rounded p-1.5 transition-colors"
+                  onClick={() => handleDelete(p.id)} title="Remover pacote">🗑</button>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </>
+  )
+}
+
 // ── Status do lead ────────────────────────────────────────────────────────────
 
 const STATUS_LEAD = {
@@ -141,6 +260,11 @@ function VerModal({ empresa, onClose, onEditar, onAtualizar }) {
           {empresa.historico && (
             <div className="col-span-2"><InfoRow label="Histórico / Contexto" value={empresa.historico} /></div>
           )}
+        </div>
+
+        {/* Créditos de Consultas */}
+        <div className="card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <CreditosSection empresaId={empresa.id} />
         </div>
 
         <div className="flex gap-3 justify-end pt-2 border-t border-border">

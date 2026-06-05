@@ -122,11 +122,19 @@ export default function Layout() {
   const { user, signOut, isAdmin, perfil } = useAuth()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRef = useRef(null)
 
   async function handleSignOut() {
     await signOut()
     navigate('/login')
   }
+
+  useEffect(() => {
+    function handle(e) { if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setUserMenuOpen(false) }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [])
 
   // Fecha sidebar ao redimensionar para desktop
   useEffect(() => {
@@ -167,16 +175,37 @@ export default function Layout() {
 
         <div className="flex-1" />
 
-        {/* E-mail + Sair */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-white/50 text-xs hidden md:block truncate max-w-[140px]">{user?.email}</span>
+        {/* Dropdown do usuário */}
+        <div className="relative" ref={userMenuRef}>
           <button
-            onClick={handleSignOut}
-            className="text-white text-xs px-2.5 py-1.5 rounded-md transition-colors flex-shrink-0"
-            style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.20)' }}
+            onClick={() => setUserMenuOpen(o => !o)}
+            className="flex items-center justify-center w-8 h-8 rounded-full font-black text-sm flex-shrink-0 transition-colors"
+            style={{ background: '#F5A623', color: '#1a2e4a' }}
           >
-            Sair
+            {(perfil?.nome || user?.email || '?')[0].toUpperCase()}
           </button>
+
+          {userMenuOpen && (
+            <div className="absolute top-full right-0 mt-1.5 w-56 bg-white border border-border rounded-[10px] shadow-lg z-50 overflow-hidden py-1">
+              <div className="px-4 py-3 border-b border-border">
+                <p className="text-xs font-bold text-navy truncate">{perfil?.nome || 'Consultor'}</p>
+                <p className="text-xs text-muted truncate mt-0.5">{user?.email}</p>
+              </div>
+              <NavLink to="/perfil"
+                onClick={() => setUserMenuOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-navy hover:bg-bg transition-colors"
+              >
+                <span>👤</span> Meu Perfil
+              </NavLink>
+              <div className="border-t border-border" />
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-danger hover:bg-red-50 transition-colors"
+              >
+                <span>🚪</span> Sair
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
@@ -230,10 +259,6 @@ export default function Layout() {
               </div>
             )}
 
-            {/* Meu Perfil */}
-            <div className="border-t border-white/10 mt-2 pt-2">
-              <NavItem item={{ to: '/perfil', icon: '👤', label: 'Meu Perfil' }} onClick={() => setSidebarOpen(false)} />
-            </div>
           </nav>
         </aside>
 

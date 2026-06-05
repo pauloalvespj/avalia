@@ -5,7 +5,7 @@ import { PERGUNTAS } from '@/lib/perguntas'
 
 export default function QuestionarioPage() {
   const [params] = useSearchParams()
-  const empresaId = params.get('empresa') || ''
+  const empresaId = params.get('emp') || ''
 
   // Dados carregados
   const [empresa, setEmpresa]         = useState(null)

@@ -63,7 +63,7 @@ function Toggle({ value, onChange }) {
 
 export default function DenunciaPage() {
   const [params] = useSearchParams()
-  const empresaId = params.get('empresa')
+  const empresaId = params.get('emp')
 
   const [empresa, setEmpresa] = useState(null)
   const [loadingEmpresa, setLoadingEmpresa] = useState(true)

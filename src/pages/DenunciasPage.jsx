@@ -135,7 +135,7 @@ export default function DenunciasPage() {
   const [copiado, setCopiado]         = useState(false)
 
   const linkDenuncia = empresaAtiva
-    ? `${window.location.origin}/denuncia?empresa=${empresaAtiva.id}`
+    ? `${window.location.origin}/canal?emp=${empresaAtiva.id}`
     : ''
 
   async function copiarLink() {

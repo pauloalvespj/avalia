@@ -47,7 +47,7 @@ export default function App() {
       <Route path="/login"    element={<LoginPage />} />
       <Route path="/cadastro" element={<CadastroPage />} />
       <Route path="/questionario" element={<QuestionarioPage />} />
-      <Route path="/denuncia"     element={<DenunciaPage />} />
+      <Route path="/canal"         element={<DenunciaPage />} />
 
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<Navigate to="/dashboard" replace />} />

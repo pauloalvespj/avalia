@@ -23,6 +23,8 @@ export default function LoginPage() {
           : 'Erro ao entrar. Tente novamente.'
       )
     } else {
+      localStorage.removeItem('psi_empresa_ativa')
+      localStorage.removeItem('psi_setor_ativo')
       navigate('/dashboard')
     }
   }

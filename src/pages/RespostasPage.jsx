@@ -121,7 +121,7 @@ export default function RespostasPage() {
   const [copiado, setCopiado]         = useState(false)
 
   const linkQuestionario = empresaAtiva
-    ? `${window.location.origin}/questionario?empresa=${empresaAtiva.id}`
+    ? `${window.location.origin}/questionario?emp=${empresaAtiva.id}`
     : ''
 
   async function copiarLink() {

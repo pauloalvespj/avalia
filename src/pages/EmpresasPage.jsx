@@ -330,7 +330,8 @@ export default function EmpresasPage() {
       ) : (
         <div className="grid gap-3">
           {filtradas.map(e => (
-            <div key={e.id} className="card flex items-center justify-between gap-4">
+            <div key={e.id} className="card flex flex-col sm:flex-row sm:items-center gap-3">
+              {/* Info */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-navy">{e.nome}</span>
@@ -344,21 +345,22 @@ export default function EmpresasPage() {
                 <div className="text-xs text-muted mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
                   {e.cnpj        && <span>{e.cnpj}</span>}
                   {e.setor_ramo  && <span>{e.setor_ramo}</span>}
-                  {e.func_total > 0 && <span>{e.func_total} funcionários</span>}
-                  {e.responsavel && <span>Resp: {e.responsavel}</span>}
+                  {e.func_total > 0 && <span>{e.func_total} func.</span>}
+                  {e.responsavel && <span>{e.responsavel}</span>}
                 </div>
               </div>
-              <div className="flex gap-2 flex-shrink-0">
-                <button className="btn-secondary text-xs px-3 py-1.5" onClick={() => setVerModal(e)}>
-                  Ver
+              {/* Ações */}
+              <div className="flex gap-2 flex-shrink-0 flex-wrap">
+                <button className="btn-secondary text-xs w-8 h-8 flex items-center justify-center" title="Ver dados" onClick={() => setVerModal(e)}>
+                  👁
                 </button>
-                <button className="btn-secondary text-xs px-3 py-1.5" onClick={() => abrirEditar(e)}>
-                  Editar
+                <button className="btn-secondary text-xs w-8 h-8 flex items-center justify-center" title="Editar" onClick={() => abrirEditar(e)}>
+                  ✏️
                 </button>
-                <button className="btn-primary text-xs px-3 py-1.5" onClick={() => handleAbrir(e)}>
+                <button className="btn-primary text-xs px-3 py-1.5 flex-shrink-0" onClick={() => handleAbrir(e)}>
                   Abrir →
                 </button>
-                <button className="text-xs px-2 py-1.5 text-danger hover:bg-red-50 rounded-lg transition-colors"
+                <button className="text-xs w-8 h-8 flex items-center justify-center text-danger hover:bg-red-50 rounded-lg transition-colors"
                   onClick={() => setDeleting(e)}>🗑</button>
               </div>
             </div>

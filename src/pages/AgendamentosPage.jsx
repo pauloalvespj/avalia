@@ -685,28 +685,28 @@ export default function AgendamentosPage() {
         title="Agendamentos"
         subtitle="Gerencie entrevistas, devolutivas e reuniões"
         action={
-          <div className="flex gap-2">
-            <button className="btn-secondary text-sm"
+          <div className="flex flex-wrap gap-2 justify-end">
+            <button className="btn-secondary text-xs"
               onClick={() => setShowRelatorio(v => !v)}>
               {showRelatorio ? '← Lista' : '📊 Relatório'}
             </button>
-            <button className="btn-primary" onClick={abrirNovo}>+ Novo agendamento</button>
+            <button className="btn-primary text-xs" onClick={abrirNovo}>+ Novo</button>
           </div>
         }
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {[
           { label: 'Total do mês',  value: metricas.total,       color: '#3a7bd5', icon: '📅' },
           { label: 'Pendentes',     value: metricas.pendentes,   color: '#475569', icon: '⏳' },
           { label: 'Confirmados',   value: metricas.confirmados, color: '#1d4ed8', icon: '✅' },
           { label: 'Realizados',    value: metricas.realizados,  color: '#166534', icon: '🏆' },
         ].map(m => (
-          <div key={m.label} className="card flex items-center gap-3">
-            <span className="text-2xl">{m.icon}</span>
-            <div>
-              <div className="text-2xl font-black" style={{ color: m.color }}>{m.value}</div>
-              <div className="text-xs text-muted">{m.label}</div>
+          <div key={m.label} className="card flex items-center gap-2 py-3">
+            <span className="text-xl flex-shrink-0">{m.icon}</span>
+            <div className="min-w-0">
+              <div className="text-xl font-black leading-none" style={{ color: m.color }}>{m.value}</div>
+              <div className="text-xs text-muted truncate">{m.label}</div>
             </div>
           </div>
         ))}

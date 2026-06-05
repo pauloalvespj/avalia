@@ -70,6 +70,12 @@ function Campo({ label, value }) {
 export default function RelatorioPage() {
   const { empresaAtiva } = useEmpresa()
 
+  const SECOES_PADRAO = {
+    perfil: true, metodologia: true, escuta: true,
+    riscos: true, riscosAltos: true, diagnostico: true,
+    plano: true, okrs: true,
+  }
+
   const [dados, setDados]       = useState(null)
   const [config, setConfig]     = useState(null)
   const [loading, setLoading]   = useState(false)
@@ -77,6 +83,7 @@ export default function RelatorioPage() {
   const [tituloRel, setTituloRel]           = useState('Relatório de Avaliação de Riscos Psicossociais')
   const [subtituloRel, setSubtituloRel]     = useState('Baseado na metodologia COPSOQ II conforme NR-01')
   const [metodologiaRel, setMetodologiaRel] = useState('')
+  const [secoes, setSecoes]     = useState(SECOES_PADRAO)
   const [savedMsg, setSavedMsg] = useState('')
   const debRef = useRef({})
 
@@ -101,6 +108,7 @@ export default function RelatorioPage() {
           setTituloRel(data.titulo ?? 'Relatório de Avaliação de Riscos Psicossociais')
           setSubtituloRel(data.subtitulo ?? 'Baseado na metodologia COPSOQ II conforme NR-01')
           setMetodologiaRel(data.metodologia ?? config?.metodologia ?? METODOLOGIA_PADRAO)
+          if (data.secoes && Object.keys(data.secoes).length) setSecoes({ ...SECOES_PADRAO, ...data.secoes })
         } else {
           setMetodologiaRel(config?.metodologia ?? METODOLOGIA_PADRAO)
         }
@@ -123,6 +131,12 @@ export default function RelatorioPage() {
   function handleTitulo(v)      { setTituloRel(v);      autoSalvar('titulo', v) }
   function handleSubtitulo(v)   { setSubtituloRel(v);   autoSalvar('subtitulo', v) }
   function handleMetodologia(v) { setMetodologiaRel(v); autoSalvar('metodologia', v) }
+
+  function handleSecao(key, val) {
+    const novas = { ...secoes, [key]: val }
+    setSecoes(novas)
+    autoSalvar('secoes', novas)
+  }
 
   const [modalLink, setModalLink]   = useState(false)
   const [copiadoLink, setCopiadoLink] = useState(false)
@@ -221,16 +235,18 @@ export default function RelatorioPage() {
 
   // Tem escuta se qualquer setor tiver escuta preenchida
   const temEscuta = dados ? Object.keys(dados.escutaPorSetor ?? {}).length > 0 : false
-  const SEC = {
-    perfil:      1,
-    metodologia: 2,
-    escuta:      temEscuta ? 3 : null,
-    riscos:      temEscuta ? 4 : 3,
-    riscosAltos: temEscuta ? 5 : 4,
-    diagnostico: temEscuta ? 6 : 5,
-    plano:       temEscuta ? 7 : 6,
-    okrs:        temEscuta ? 8 : 7,
-  }
+
+  // Numeração dinâmica — pula seções ocultas
+  const SEC = {}
+  let _n = 1
+  if (secoes.perfil      !== false) SEC.perfil      = _n++
+  if (secoes.metodologia !== false) SEC.metodologia = _n++
+  if (secoes.escuta      !== false && temEscuta) SEC.escuta = _n++
+  if (secoes.riscos      !== false) SEC.riscos      = _n++
+  if (secoes.riscosAltos !== false) SEC.riscosAltos = _n++
+  if (secoes.diagnostico !== false) SEC.diagnostico = _n++
+  if (secoes.plano       !== false) SEC.plano       = _n++
+  if (secoes.okrs        !== false) SEC.okrs        = _n++
 
   const rodape = config?.rodape ||
     `${config?.nome_consultoria ?? 'Avaliary'} | Relatório de Riscos Psicossociais | ${dataAtual} | ${e.nome}`
@@ -306,6 +322,32 @@ export default function RelatorioPage() {
               onChange={e => handleMetodologia(e.target.value)}
               placeholder="Descreva a metodologia utilizada..." />
           </div>
+
+          <div>
+            <label className="label mb-2">Seções visíveis no relatório</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { key: 'perfil',      label: 'Perfil da Empresa' },
+                { key: 'metodologia', label: 'Metodologia' },
+                { key: 'escuta',      label: 'Escuta da Equipe' },
+                { key: 'riscos',      label: 'Avaliação de Riscos' },
+                { key: 'riscosAltos', label: 'Riscos Altos/Críticos' },
+                { key: 'diagnostico', label: 'Diagnóstico' },
+                { key: 'plano',       label: 'Plano de Ação' },
+                { key: 'okrs',        label: 'OKRs e KPIs' },
+              ].map(({ key, label }) => (
+                <label key={key} className="flex items-center gap-2 cursor-pointer text-sm text-navy select-none">
+                  <input
+                    type="checkbox"
+                    checked={secoes[key] !== false}
+                    onChange={e => handleSecao(key, e.target.checked)}
+                    className="w-4 h-4 accent-primary"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -375,7 +417,7 @@ export default function RelatorioPage() {
           </section>
 
           {/* ── PERFIL DA EMPRESA ── */}
-          <Secao titulo={`${SEC.perfil}. Perfil da Empresa`}>
+          {SEC.perfil && <Secao titulo={`${SEC.perfil}. Perfil da Empresa`}>
             <div className="grid grid-cols-2 gap-x-6 gap-y-2 no-break">
               <Campo label="Razão Social"         value={e.nome} />
               <Campo label="CNPJ"                 value={e.cnpj} />
@@ -390,17 +432,17 @@ export default function RelatorioPage() {
               {e.demanda   && <div className="col-span-2"><Campo label="Principal Demanda" value={e.demanda} /></div>}
               {e.historico && <div className="col-span-2"><Campo label="Histórico"         value={e.historico} /></div>}
             </div>
-          </Secao>
+          </Secao>}
 
           {/* ── METODOLOGIA ── */}
-          <Secao titulo={`${SEC.metodologia}. Metodologia`}>
+          {SEC.metodologia && <Secao titulo={`${SEC.metodologia}. Metodologia`}>
             <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
               {metodologiaRel || METODOLOGIA_PADRAO}
             </p>
-          </Secao>
+          </Secao>}
 
           {/* ── ESCUTA DA EQUIPE ── */}
-          {temEscuta && (
+          {SEC.escuta && temEscuta && (
             <Secao titulo={`${SEC.escuta}. Escuta da Equipe`}>
               {dados.setores.filter(s => dados.escutaPorSetor[s.id]).map(s => {
                 const esc = dados.escutaPorSetor[s.id]
@@ -457,7 +499,7 @@ export default function RelatorioPage() {
           )}
 
           {/* ── AVALIAÇÃO DE RISCOS ── */}
-          <Secao titulo={`${SEC.riscos}. Avaliação de Riscos por Domínio`}>
+          {SEC.riscos && <Secao titulo={`${SEC.riscos}. Avaliação de Riscos por Domínio`}>
             {Object.keys(dados.sfMap).length === 0 ? (
               <p className="text-sm text-muted">Nenhum risco calculado para este setor.</p>
             ) : (
@@ -506,10 +548,10 @@ export default function RelatorioPage() {
                 </table>
               </>
             )}
-          </Secao>
+          </Secao>}
 
           {/* ── RISCOS ALTOS E CRÍTICOS ── */}
-          <Secao titulo={`${SEC.riscosAltos}. Riscos Altos e Críticos`}>
+          {SEC.riscosAltos && <Secao titulo={`${SEC.riscosAltos}. Riscos Altos e Críticos`}>
             {(() => {
               const altos = Object.entries(dados.sfMap).filter(([,v]) => v >= 4)
               if (!altos.length) return <p className="text-sm text-success font-semibold">✅ Nenhum risco alto ou crítico identificado.</p>
@@ -542,10 +584,10 @@ export default function RelatorioPage() {
                 </table>
               )
             })()}
-          </Secao>
+          </Secao>}
 
           {/* ── DIAGNÓSTICO ── */}
-          <Secao titulo={`${SEC.diagnostico}. Diagnóstico`}>
+          {SEC.diagnostico && <Secao titulo={`${SEC.diagnostico}. Diagnóstico`}>
             {Object.keys(dados.diagPorSetor).length === 0 ? (
               <p className="text-sm text-muted">Diagnóstico não preenchido.</p>
             ) : (
@@ -575,10 +617,10 @@ export default function RelatorioPage() {
                 )
               })
             )}
-          </Secao>
+          </Secao>}
 
           {/* ── PLANO DE AÇÃO ── */}
-          <Secao titulo={`${SEC.plano}. Plano de Ação`}>
+          {SEC.plano && <Secao titulo={`${SEC.plano}. Plano de Ação`}>
             {!dados.acoes.length ? (
               <p className="text-sm text-muted">Nenhuma ação cadastrada.</p>
             ) : (
@@ -632,10 +674,10 @@ export default function RelatorioPage() {
                 )}
               </>
             )}
-          </Secao>
+          </Secao>}
 
           {/* ── OKRs e KPIs ── */}
-          <Secao titulo={`${SEC.okrs}. OKRs e KPIs`}>
+          {SEC.okrs && <Secao titulo={`${SEC.okrs}. OKRs e KPIs`}>
             {dados.okrs.length > 0 && (
               <div className="space-y-4 mb-5 no-break">
                 {dados.okrs.map((o, i) => {
@@ -686,7 +728,7 @@ export default function RelatorioPage() {
             {!dados.okrs.length && !dados.kpis.length && (
               <p className="text-sm text-muted">OKRs e KPIs não cadastrados.</p>
             )}
-          </Secao>
+          </Secao>}
 
           {/* Rodapé impresso */}
           <div className="relatorio-rodape hidden print:block text-xs text-muted text-center border-t border-border pt-2 mt-8">

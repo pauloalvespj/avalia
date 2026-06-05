@@ -254,21 +254,21 @@ export default function RespostasPage() {
         title="Respostas"
         subtitle={`${nomeSetor} · ${respostas.length} resposta${respostas.length !== 1 ? 's' : ''}`}
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 justify-end">
             <button
               onClick={() => { setLinkAberto(true); setCopiado(false) }}
-              className="text-xs font-bold px-4 py-2 rounded-lg flex-shrink-0 transition-colors"
+              className="text-xs font-bold px-3 py-2 rounded-lg flex-shrink-0 transition-colors"
               style={{ background: '#0e7490', color: '#fff', border: 'none', cursor: 'pointer' }}
               onMouseEnter={e => e.currentTarget.style.background = '#0c6278'}
               onMouseLeave={e => e.currentTarget.style.background = '#0e7490'}
             >
-              🔗 Link do Questionário
+              🔗 <span className="hidden sm:inline">Link do </span>Questionário
             </button>
-            <button className="btn-secondary" onClick={baixarPlanilha} disabled={!respostas.length}
-              title="Baixar planilha CSV com todas as respostas">
-              ⬇️ Planilha
+            <button className="btn-secondary text-xs" onClick={baixarPlanilha} disabled={!respostas.length}
+              title="Baixar planilha CSV">
+              ⬇️ <span className="hidden sm:inline">Planilha</span>
             </button>
-            <button className="btn-primary" onClick={calcularEUpsert} disabled={calculando || !respostas.length}>
+            <button className="btn-primary text-xs" onClick={calcularEUpsert} disabled={calculando || !respostas.length}>
               {calculando ? 'Calculando...' : '⚠️ Calcular riscos'}
             </button>
           </div>
@@ -294,50 +294,31 @@ export default function RespostasPage() {
         <EmptyState icon="📋" title="Nenhuma resposta registrada"
           description="Compartilhe o link do questionário com os colaboradores para coletar respostas. A lista atualiza automaticamente." />
       ) : (
-        <div className="card p-0 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-bg">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">#</th>
-                {setorFiltro === 'todos' && (
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">Setor</th>
-                )}
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">Data / Hora</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">Score médio</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {respostas.map((r, i) => (
-                <tr key={r.id} className="border-b border-border last:border-0 hover:bg-bg/50 transition-colors">
-                  <td className="px-4 py-3 text-muted font-mono text-xs">{i + 1}</td>
+        <div className="space-y-2">
+          {respostas.map((r, i) => (
+            <div key={r.id} className="card flex items-center gap-3">
+              <span className="text-xs font-mono text-muted flex-shrink-0 w-6 text-center">{i + 1}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <ScoreBadge respostas={r.respostas} />
                   {setorFiltro === 'todos' && (
-                    <td className="px-4 py-3 text-xs text-muted">
+                    <span className="text-xs text-muted truncate">
                       {setores.find(s => s.id === r.setor_id)?.nome ?? '—'}
-                    </td>
+                    </span>
                   )}
-                  <td className="px-4 py-3 text-navy whitespace-nowrap">{formatarData(r.created_at)}</td>
-                  <td className="px-4 py-3"><ScoreBadge respostas={r.respostas} /></td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        className="btn-primary text-xs px-3 py-1.5"
-                        onClick={() => setVisualizando(i)}
-                      >
-                        Ver
-                      </button>
-                      <button
-                        className="btn-danger text-xs px-3 py-1.5"
-                        onClick={() => setDeleting(r)}
-                      >
-                        Excluir
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                </div>
+                <div className="text-xs text-muted mt-0.5">{formatarData(r.created_at)}</div>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <button className="btn-primary text-xs w-8 h-8 flex items-center justify-center" title="Ver respostas" onClick={() => setVisualizando(i)}>
+                  👁
+                </button>
+                <button className="btn-danger text-xs w-8 h-8 flex items-center justify-center" onClick={() => setDeleting(r)}>
+                  🗑
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

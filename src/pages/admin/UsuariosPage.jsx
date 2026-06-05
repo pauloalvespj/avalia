@@ -135,64 +135,53 @@ export default function UsuariosPage() {
       {loading ? (
         <div className="flex items-center justify-center py-20 text-muted text-sm">Carregando…</div>
       ) : (
-        <div className="card p-0 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-bg">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">Usuário</th>
-                <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide text-center">Papel</th>
-                <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide text-center">Status</th>
-                <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide hidden sm:table-cell">Cadastro</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {usuarios.map(u => {
-                const sou = u.id === eu?.id
-                return (
-                  <tr key={u.id} className="border-b border-border last:border-0 hover:bg-bg/50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        {u.foto_url
-                          ? <img src={u.foto_url} className="w-8 h-8 rounded-full object-cover" alt="" />
-                          : <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-xs font-bold text-primary">
-                              {(u.nome ?? u.email ?? '?')[0].toUpperCase()}
-                            </div>
-                        }
-                        <div>
-                          <div className="font-semibold text-navy leading-tight">
-                            {u.nome ?? '—'}
-                            {sou && <span className="text-xs text-muted ml-1.5">(você)</span>}
-                          </div>
-                          <div className="text-xs text-muted">{u.email}</div>
-                          {u.cpf && <div className="text-xs text-muted">CPF: {u.cpf}</div>}
-                        </div>
+        <div className="space-y-2">
+          {usuarios.map(u => {
+            const sou = u.id === eu?.id
+            return (
+              <div key={u.id} className="card flex items-center gap-3">
+                {/* Avatar */}
+                <div className="flex-shrink-0">
+                  {u.foto_url
+                    ? <img src={u.foto_url} className="w-10 h-10 rounded-full object-cover" alt="" />
+                    : <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-sm font-black text-primary">
+                        {(u.nome ?? u.email ?? '?')[0].toUpperCase()}
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-center"><RoleBadge role={u.role} /></td>
-                    <td className="px-4 py-3 text-center"><StatusBadge ativo={u.ativo !== false} /></td>
-                    <td className="px-4 py-3 text-xs text-muted hidden sm:table-cell">
-                      {u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button className="btn-primary text-xs px-3 py-1.5"
-                          onClick={() => abrirEditar(u)}>
-                          Editar
-                        </button>
-                        {!sou && (
-                          <button className="btn-danger text-xs px-3 py-1.5"
-                            onClick={() => setDeletando(u)}>
-                            Excluir
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                  }
+                </div>
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-navy text-sm truncate">
+                      {u.nome ?? '—'}
+                    </span>
+                    {sou && <span className="text-xs text-muted">(você)</span>}
+                    <RoleBadge role={u.role} />
+                    <StatusBadge ativo={u.ativo !== false} />
+                  </div>
+                  <div className="text-xs text-muted mt-0.5 truncate">{u.email}</div>
+                  {u.created_at && (
+                    <div className="text-xs text-muted">
+                      Desde {new Date(u.created_at).toLocaleDateString('pt-BR')}
+                    </div>
+                  )}
+                </div>
+                {/* Ações */}
+                <div className="flex gap-2 flex-shrink-0">
+                  <button className="btn-secondary text-xs w-8 h-8 flex items-center justify-center" title="Editar"
+                    onClick={() => abrirEditar(u)}>
+                    ✏️
+                  </button>
+                  {!sou && (
+                    <button className="btn-danger text-xs w-8 h-8 flex items-center justify-center" title="Excluir"
+                      onClick={() => setDeletando(u)}>
+                      🗑
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 

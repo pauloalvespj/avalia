@@ -203,42 +203,41 @@ export default function DenunciasPage() {
         action={
           <button
             onClick={() => { setLinkAberto(true); setCopiado(false) }}
-            className="text-xs font-bold px-4 py-2 rounded-lg flex-shrink-0 transition-colors"
+            className="text-xs font-bold px-3 py-2 rounded-lg flex-shrink-0 transition-colors"
             style={{ background: '#dc2626', color: '#fff', border: 'none', cursor: 'pointer' }}
             onMouseEnter={e => e.currentTarget.style.background = '#b91c1c'}
             onMouseLeave={e => e.currentTarget.style.background = '#dc2626'}
           >
-            🔗 Link / QR Code do Canal
+            🔗 Link do Canal
           </button>
         }
       />
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-3 sm:grid-cols-3 gap-3 mb-5">
         {[
           { label: 'Recebidas',    key: 'recebida',   icon: '📥', bg: '#f1f5f9', color: '#475569' },
           { label: 'Em análise',   key: 'em_analise', icon: '🔍', bg: '#fef9c3', color: '#854d0e' },
           { label: 'Concluídas',   key: 'concluida',  icon: '✅', bg: '#dcfce7', color: '#166534' },
         ].map(({ label, key, icon, bg, color }) => (
-          <div key={key} className="card flex items-center gap-3 py-4">
-            <div style={{ width: 40, height: 40, background: bg, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+          <div key={key} className="card flex flex-col sm:flex-row items-center gap-2 py-3 text-center sm:text-left">
+            <div style={{ width: 36, height: 36, background: bg, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
               {icon}
             </div>
             <div>
-              <div style={{ fontSize: 22, fontWeight: 800, color }}>{contagem[key]}</div>
-              <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>{label}</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color }}>{contagem[key]}</div>
+              <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 500 }}>{label}</div>
             </div>
           </div>
         ))}
       </div>
 
       <div className="card">
-        <div style={{ marginBottom: 16 }}>
+        <div className="mb-4">
           <input
-            className="input"
+            className="input w-full sm:w-72"
             placeholder="Buscar por protocolo..."
             value={busca}
             onChange={e => setBusca(e.target.value)}
-            style={{ maxWidth: 280 }}
           />
         </div>
 
@@ -251,52 +250,34 @@ export default function DenunciasPage() {
             description={busca ? 'Tente outro protocolo.' : 'Quando colaboradores enviarem denúncias, elas aparecerão aqui.'}
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e5e7eb' }}>
-                  {['Protocolo', 'Categoria', 'Data', 'Status', ''].map(h => (
-                    <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: '#6b7280', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtradas.map(d => {
-                  const cat = CAT_COLOR[d.categoria] ?? CAT_COLOR['Outro']
-                  const st  = STATUS[d.status] ?? STATUS.recebida
-                  return (
-                    <tr
-                      key={d.id}
-                      onClick={() => setSelecionada(d)}
-                      style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer', transition: 'background .1s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                      onMouseLeave={e => e.currentTarget.style.background = ''}
-                    >
-                      <td style={{ padding: '12px 12px', fontWeight: 700, color: '#1a2e4a', fontFamily: 'monospace' }}>
-                        {d.protocolo}
-                      </td>
-                      <td style={{ padding: '12px 12px' }}>
-                        <Badge text={d.categoria} bg={cat.bg} color={cat.color} />
-                      </td>
-                      <td style={{ padding: '12px 12px', color: '#6b7280', whiteSpace: 'nowrap' }}>
-                        {new Date(d.created_at).toLocaleDateString('pt-BR')}
-                      </td>
-                      <td style={{ padding: '12px 12px' }}>
-                        <Badge text={st.label} bg={st.bg} color={st.color} />
-                      </td>
-                      <td style={{ padding: '12px 12px' }}>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          {d.envolve_lideranca && <span title="Envolve liderança" style={{ fontSize: 16 }}>⚠️</span>}
-                          {d.quer_contato && <span title="Quer ser contatado" style={{ fontSize: 16 }}>📬</span>}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+          <div className="space-y-2">
+            {filtradas.map(d => {
+              const cat = CAT_COLOR[d.categoria] ?? CAT_COLOR['Outro']
+              const st  = STATUS[d.status] ?? STATUS.recebida
+              return (
+                <div
+                  key={d.id}
+                  onClick={() => setSelecionada(d)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-white cursor-pointer hover:bg-bg transition-colors"
+                >
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-navy font-mono">{d.protocolo}</span>
+                      {d.envolve_lideranca && <span title="Envolve liderança" className="text-sm">⚠️</span>}
+                      {d.quer_contato && <span title="Quer contato" className="text-sm">📬</span>}
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge text={d.categoria} bg={cat.bg} color={cat.color} />
+                      <Badge text={st.label} bg={st.bg} color={st.color} />
+                    </div>
+                    <div className="text-xs text-muted">
+                      {new Date(d.created_at).toLocaleDateString('pt-BR')}
+                    </div>
+                  </div>
+                  <span className="text-muted text-sm flex-shrink-0">›</span>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

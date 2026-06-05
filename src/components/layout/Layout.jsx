@@ -56,7 +56,7 @@ function EmpresaPill() {
 
   useEffect(() => {
     if (!user) return
-    supabase.from('empresas').select('id, nome, setor_ramo').eq('consultor_id', user.id).order('nome')
+    supabase.from('empresas').select('id, nome, setor_ramo').order('nome')
       .then(({ data }) => setEmpresas(data ?? []))
   }, [user])
 

@@ -16,7 +16,8 @@ import DiagnosticoPage  from '@/pages/DiagnosticoPage'
 import PlanoAcaoPage    from '@/pages/PlanoAcaoPage'
 import OkrsPage         from '@/pages/OkrsPage'
 import ChecklistPage    from '@/pages/ChecklistPage'
-import RelatorioPage    from '@/pages/RelatorioPage'
+import RelatorioPage       from '@/pages/RelatorioPage'
+import RelatorioPublicoPage from '@/pages/RelatorioPublicoPage'
 import EscutaPage      from '@/pages/EscutaPage'
 import DenunciaPage    from '@/pages/DenunciaPage'
 import DenunciasPage   from '@/pages/DenunciasPage'
@@ -46,8 +47,9 @@ export default function App() {
     <Routes>
       <Route path="/login"    element={<LoginPage />} />
       <Route path="/cadastro" element={<CadastroPage />} />
-      <Route path="/questionario" element={<QuestionarioPage />} />
-      <Route path="/canal"         element={<DenunciaPage />} />
+      <Route path="/questionario"   element={<QuestionarioPage />} />
+      <Route path="/canal"          element={<DenunciaPage />} />
+      <Route path="/relatorio-pub"  element={<RelatorioPublicoPage />} />
 
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<Navigate to="/dashboard" replace />} />

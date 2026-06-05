@@ -34,6 +34,8 @@ export default function UsuariosPage() {
   const [formEdit, setFormEdit]   = useState({})
   const [deletando, setDeletando] = useState(null)
   const [email, setEmail]         = useState('')
+  const [senha, setSenha]         = useState('')
+  const [mostrarSenha, setMostrarSenha] = useState(false)
   const [roleNovo, setRoleNovo]   = useState('consultor')
   const [salvando, setSalvando]   = useState(false)
   const [toast, setToast]         = useState(null)
@@ -103,19 +105,18 @@ export default function UsuariosPage() {
   }
 
   async function criarDiretamente() {
-    if (!email.trim()) return
+    if (!email.trim() || !senha.trim()) return
+    if (senha.length < 6) { setToast({ message: 'Senha deve ter pelo menos 6 caracteres.', type: 'error' }); return }
     setSalvando(true)
-    const tempSenha = Math.random().toString(36).slice(-10) + 'A1!'
-    const { error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password: tempSenha,
-      options: { data: { role: roleNovo } },
+    const { error } = await supabase.functions.invoke('admin-update-user', {
+      body: { action: 'create', email: email.trim(), password: senha, role: roleNovo },
     })
     setSalvando(false)
     if (error) { setToast({ message: 'Erro: ' + error.message, type: 'error' }); return }
-    setToast({ message: `Usuário ${email} criado.`, type: 'success' })
+    setToast({ message: `Usuário ${email} criado com sucesso!`, type: 'success' })
     setModalAdd(false)
     setEmail('')
+    setSenha('')
     setTimeout(load, 1500)
   }
 
@@ -250,7 +251,7 @@ export default function UsuariosPage() {
 
       {/* Modal adicionar usuário */}
       {modalAdd && (
-        <Modal title="Adicionar usuário" onClose={() => setModalAdd(false)} size="sm">
+        <Modal title="Novo usuário" onClose={() => { setModalAdd(false); setEmail(''); setSenha('') }} size="sm">
           <div className="space-y-4">
             <div>
               <label className="label">E-mail</label>
@@ -258,22 +259,39 @@ export default function UsuariosPage() {
                 value={email} onChange={e => setEmail(e.target.value)} autoFocus />
             </div>
             <div>
-              <label className="label">Papel inicial</label>
+              <label className="label">Senha</label>
+              <div className="relative">
+                <input
+                  className="input pr-10"
+                  type={mostrarSenha ? 'text' : 'password'}
+                  placeholder="Mínimo 6 caracteres"
+                  value={senha}
+                  onChange={e => setSenha(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-navy text-xs"
+                  onClick={() => setMostrarSenha(v => !v)}
+                >
+                  {mostrarSenha ? '🙈' : '👁'}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="label">Papel</label>
               <select className="input" value={roleNovo} onChange={e => setRoleNovo(e.target.value)}>
                 <option value="consultor">Consultor</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
-            <div className="border-t border-border pt-3 space-y-2">
-              <button className="btn-primary w-full" onClick={criarDiretamente} disabled={salvando || !email.trim()}>
-                {salvando ? 'Adicionando...' : 'Adicionar usuário'}
+            <div className="flex gap-3 justify-end pt-2 border-t border-border">
+              <button className="btn-secondary" onClick={() => { setModalAdd(false); setEmail(''); setSenha('') }}>
+                Cancelar
               </button>
-              <button className="btn-secondary w-full" onClick={copiarLinkCadastro}>
-                📋 Copiar link de acesso
+              <button className="btn-primary" onClick={criarDiretamente}
+                disabled={salvando || !email.trim() || !senha.trim()}>
+                {salvando ? 'Criando...' : 'Criar usuário'}
               </button>
-              <p className="text-xs text-muted text-center">
-                O link leva para a tela de cadastro onde o usuário cria a própria senha.
-              </p>
             </div>
           </div>
         </Modal>

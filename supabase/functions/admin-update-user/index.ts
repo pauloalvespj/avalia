@@ -31,8 +31,34 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Acesso negado' }), { status: 403, headers: corsHeaders })
     }
 
-    // Executa a atualização
-    const { userId, email } = await req.json()
+    const body = await req.json()
+
+    // ── Criar usuário ──────────────────────────────────────────────────────────
+    if (body.action === 'create') {
+      const { email, password, role } = body
+      if (!email || !password) {
+        return new Response(JSON.stringify({ error: 'email e password são obrigatórios' }), { status: 400, headers: corsHeaders })
+      }
+      const { data, error } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { role: role ?? 'consultor' },
+      })
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: corsHeaders })
+      }
+      await supabaseAdmin.from('perfis').upsert({
+        id:    data.user.id,
+        email: data.user.email,
+        role:  role ?? 'consultor',
+        ativo: true,
+      }, { onConflict: 'id' })
+      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders })
+    }
+
+    // ── Atualizar e-mail ───────────────────────────────────────────────────────
+    const { userId, email } = body
     if (!userId || !email) {
       return new Response(JSON.stringify({ error: 'userId e email são obrigatórios' }), { status: 400, headers: corsHeaders })
     }
@@ -42,7 +68,6 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: corsHeaders })
     }
 
-    // Sincroniza email na tabela perfis também
     await supabaseAdmin.from('perfis').update({ email }).eq('id', userId)
 
     return new Response(JSON.stringify({ success: true }), { headers: corsHeaders })

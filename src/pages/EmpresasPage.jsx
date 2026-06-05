@@ -175,7 +175,6 @@ export default function EmpresasPage() {
     const { data, error } = await supabase
       .from('empresas')
       .select('*')
-      .eq('consultor_id', user.id)
       .order('created_at', { ascending: false })
     if (error) setToast({ message: 'Erro ao carregar: ' + error.message, type: 'error' })
     setEmpresas(data ?? [])

@@ -64,16 +64,19 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const { empresaAtiva, setEmpresaAtiva } = useEmpresa()
 
-  const [dados, setDados]         = useState(null)
-  const [loading, setLoading]     = useState(false)
+  const [dados, setDados]               = useState(null)
+  const [loading, setLoading]           = useState(false)
   const [listaEmpresas, setListaEmpresas] = useState(null)
 
-  // Carrega lista de empresas quando não há empresa ativa
+  // Carrega lista só quando não há empresa ativa na sessão
   useEffect(() => {
-    if (empresaAtiva?.id || !user) return
-    supabase.from('empresas').select('id, nome, setor_ramo, status_lead').eq('consultor_id', user.id).order('nome')
-      .then(({ data }) => setListaEmpresas(data ?? []))
-  }, [empresaAtiva?.id, user])
+    if (empresaAtiva?.id || !user?.id) return
+    supabase.from('empresas').select('id, nome, setor_ramo').order('nome')
+      .then(({ data, error }) => {
+        if (error) console.error('Empresas:', error.message)
+        setListaEmpresas(data ?? [])
+      })
+  }, [empresaAtiva?.id, user?.id])
 
   const load = useCallback(async () => {
     if (!empresaAtiva?.id) { setDados(null); return }
@@ -153,7 +156,8 @@ export default function DashboardPage() {
 
   useEffect(() => { load() }, [load])
 
-  if (!empresaAtiva?.id) {
+  // ── Selector de empresa (sempre ao entrar no dashboard) ──────────────────────
+  if (!empresaAtiva) {
     if (listaEmpresas === null) return <LoadingSpinner />
     if (listaEmpresas.length === 0) return (
       <EmptyState icon="🏢" title="Nenhuma empresa cadastrada"
@@ -164,7 +168,7 @@ export default function DashboardPage() {
       <div className="space-y-4">
         <div>
           <h1 className="text-xl font-black text-navy">Selecione uma empresa</h1>
-          <p className="text-sm text-muted mt-0.5">Clique para entrar direto no dashboard</p>
+          <p className="text-sm text-muted mt-0.5">Clique para carregar o dashboard</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {listaEmpresas.map(e => (
@@ -212,7 +216,13 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Dashboard" subtitle={empresaAtiva.nome} />
+      <PageHeader title="Dashboard" subtitle={empresaAtiva.nome}
+        action={
+          <button className="btn-secondary text-xs" onClick={() => setEmpresaAtiva(null)}>
+            ← Trocar empresa
+          </button>
+        }
+      />
 
       {/* ── Cards de métricas ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

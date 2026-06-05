@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useEmpresa } from '@/hooks/useEmpresa'
 import { nivelRisco } from '@/lib/perguntas'
-import { EmptyState, LoadingSpinner } from '@/components/ui'
+import { EmptyState, LoadingSpinner, Toast, Modal } from '@/components/ui'
 import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
@@ -70,15 +70,69 @@ function Campo({ label, value }) {
 export default function RelatorioPage() {
   const { empresaAtiva } = useEmpresa()
 
-  const [dados, setDados]     = useState(null)
-  const [config, setConfig]   = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [dados, setDados]       = useState(null)
+  const [config, setConfig]     = useState(null)
+  const [loading, setLoading]   = useState(false)
+  const [personAberto, setPersonAberto] = useState(false)
+  const [tituloRel, setTituloRel]           = useState('Relatório de Avaliação de Riscos Psicossociais')
+  const [subtituloRel, setSubtituloRel]     = useState('Baseado na metodologia COPSOQ II conforme NR-01')
+  const [metodologiaRel, setMetodologiaRel] = useState('')
+  const [savedMsg, setSavedMsg] = useState('')
+  const debRef = useRef({})
+
+  const [toast, setToast] = useState(null)
 
   // Carrega configurações da consultoria
   useEffect(() => {
     supabase.from('configuracoes').select('*').limit(1).maybeSingle()
-      .then(({ data }) => setConfig(data))
+      .then(({ data }) => {
+        setConfig(data)
+        if (!empresaAtiva?.id && data?.metodologia) setMetodologiaRel(data.metodologia)
+        else if (!empresaAtiva?.id) setMetodologiaRel(METODOLOGIA_PADRAO)
+      })
   }, [])
+
+  // Carrega config salva do relatório da empresa
+  useEffect(() => {
+    if (!empresaAtiva?.id) return
+    supabase.from('relatorios').select('*').eq('empresa_id', empresaAtiva.id).maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setTituloRel(data.titulo ?? 'Relatório de Avaliação de Riscos Psicossociais')
+          setSubtituloRel(data.subtitulo ?? 'Baseado na metodologia COPSOQ II conforme NR-01')
+          setMetodologiaRel(data.metodologia ?? config?.metodologia ?? METODOLOGIA_PADRAO)
+        } else {
+          setMetodologiaRel(config?.metodologia ?? METODOLOGIA_PADRAO)
+        }
+      })
+  }, [empresaAtiva?.id])
+
+  function autoSalvar(campo, valor) {
+    if (!empresaAtiva?.id) return
+    if (debRef.current[campo]) clearTimeout(debRef.current[campo])
+    debRef.current[campo] = setTimeout(async () => {
+      await supabase.from('relatorios').upsert(
+        { empresa_id: empresaAtiva.id, [campo]: valor },
+        { onConflict: 'empresa_id' }
+      )
+      setSavedMsg('Salvo ✓')
+      setTimeout(() => setSavedMsg(''), 2000)
+    }, 1000)
+  }
+
+  function handleTitulo(v)      { setTituloRel(v);      autoSalvar('titulo', v) }
+  function handleSubtitulo(v)   { setSubtituloRel(v);   autoSalvar('subtitulo', v) }
+  function handleMetodologia(v) { setMetodologiaRel(v); autoSalvar('metodologia', v) }
+
+  const [modalLink, setModalLink]   = useState(false)
+  const [copiadoLink, setCopiadoLink] = useState(false)
+  const linkPublico = `${window.location.origin}/relatorio-pub?emp=${empresaAtiva?.id}`
+
+  function copiarLinkPublico() {
+    navigator.clipboard.writeText(linkPublico)
+    setCopiadoLink(true)
+    setTimeout(() => setCopiadoLink(false), 2000)
+  }
 
   const load = useCallback(async () => {
     if (!empresaAtiva?.id) return
@@ -206,17 +260,90 @@ export default function RelatorioPage() {
       `}</style>
 
       {/* ── Controles (ocultos na impressão) ── */}
-      <div className="no-print mb-5 flex items-center justify-between flex-wrap gap-3">
+      <div className="no-print mb-4 flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-black text-navy">Relatório</h1>
           <p className="text-sm text-muted">{e.nome}</p>
         </div>
-        <button className="btn-primary" onClick={() => window.print()}>
-          🖨️ Imprimir / Salvar PDF
-        </button>
+        <div className="flex gap-2">
+          <button className="btn-secondary text-xs"
+            onClick={() => setPersonAberto(v => !v)}>
+            ✏️ Personalizar {personAberto ? '▲' : '▼'}
+          </button>
+          <button className="btn-secondary text-xs" onClick={() => { setModalLink(true); setCopiadoLink(false) }}>
+            🔗 Link Público
+          </button>
+          <button className="btn-primary" onClick={() => window.print()}>
+            🖨️ Imprimir / Salvar PDF
+          </button>
+        </div>
       </div>
 
-      {loading && <LoadingSpinner />}
+      {/* ── Painel de personalização ── */}
+      {personAberto && (
+        <div className="no-print card mb-5 space-y-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm font-bold text-navy">Personalizar relatório</span>
+            {savedMsg && <span className="text-xs text-success font-semibold">{savedMsg}</span>}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Título do relatório</label>
+              <input className="input" value={tituloRel}
+                onChange={e => handleTitulo(e.target.value)}
+                placeholder="Título principal do relatório" />
+            </div>
+            <div>
+              <label className="label">Subtítulo / referência metodológica</label>
+              <input className="input" value={subtituloRel}
+                onChange={e => handleSubtitulo(e.target.value)}
+                placeholder="Ex: Baseado na metodologia COPSOQ II..." />
+            </div>
+          </div>
+          <div>
+            <label className="label">Metodologia (seção no relatório)</label>
+            <textarea className="input resize-none" rows={4} value={metodologiaRel}
+              onChange={e => handleMetodologia(e.target.value)}
+              placeholder="Descreva a metodologia utilizada..." />
+          </div>
+        </div>
+      )}
+
+      {modalLink && (
+        <Modal title="🔗 Link Público do Relatório" onClose={() => setModalLink(false)} size="sm">
+          <div className="space-y-4 text-center">
+            <p className="text-sm text-muted">
+              Compartilhe este link com a empresa <strong className="text-navy">{empresaAtiva?.nome}</strong> para acesso ao relatório completo sem login.
+            </p>
+            <div className="flex items-center gap-2 bg-bg border border-border rounded-xl px-3 py-2">
+              <span className="text-xs text-navy break-all flex-1 text-left font-mono">{linkPublico}</span>
+              <button onClick={copiarLinkPublico} className="btn-primary text-xs px-3 py-1.5 flex-shrink-0">
+                {copiadoLink ? '✅ Copiado!' : 'Copiar'}
+              </button>
+            </div>
+            <div className="flex justify-center">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(linkPublico)}`}
+                alt="QR Code"
+                width={200} height={200}
+                className="rounded-xl border border-border"
+              />
+            </div>
+            <p className="text-xs text-muted">O link mostra os dados atuais da empresa. Não expira.</p>
+            <button className="btn-secondary w-full" onClick={() => setModalLink(false)}>Fechar</button>
+          </div>
+        </Modal>
+      )}
+
+      {toast && (
+        <Toast
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+{loading && <LoadingSpinner />}
 
       {!loading && dados && (
         <div id="relatorio-print" className="bg-white rounded-2xl border border-border p-8 max-w-4xl space-y-0">
@@ -227,10 +354,10 @@ export default function RelatorioPage() {
               ? <img src={config.logo_url} alt="Logo" className="h-20 object-contain mb-2" />
               : <div className="text-2xl font-black" style={{ color: corPrimaria }}>{config?.nome_consultoria ?? 'Avaliary'}</div>
             }
-            {config?.nome_consultoria && <p className="text-lg font-bold text-navy">{config.nome_consultoria}</p>}
+            {config?.logo_url && config?.nome_consultoria && <p className="text-lg font-bold text-navy">{config.nome_consultoria}</p>}
             <div className="my-4 border-t border-border w-32" />
-            <h1 className="text-2xl font-black text-navy">Relatório de Avaliação de Riscos Psicossociais</h1>
-            <p className="text-sm text-muted">Baseado na metodologia COPSOQ II conforme NR-01</p>
+            <h1 className="text-2xl font-black text-navy">{tituloRel}</h1>
+            <p className="text-sm text-muted">{subtituloRel}</p>
             <div className="mt-4 space-y-1">
               <p className="text-base font-bold text-navy">{e.nome}</p>
               <p className="text-sm text-muted">{dataAtual}</p>
@@ -268,7 +395,7 @@ export default function RelatorioPage() {
           {/* ── METODOLOGIA ── */}
           <Secao titulo={`${SEC.metodologia}. Metodologia`}>
             <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-              {config?.metodologia || METODOLOGIA_PADRAO}
+              {metodologiaRel || METODOLOGIA_PADRAO}
             </p>
           </Secao>
 

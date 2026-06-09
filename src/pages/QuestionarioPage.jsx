@@ -7,17 +7,14 @@ export default function QuestionarioPage() {
   const [params] = useSearchParams()
   const empresaId = params.get('emp') || ''
 
-  // Dados carregados
-  const [empresa, setEmpresa]         = useState(null)
-  const [setores, setSetores]         = useState([])
-  const [perguntasAtivas, setPerguntasAtivas] = useState(PERGUNTAS)
-  const [loadingInicial, setLoadingInicial]   = useState(true)
-  const [erroInicial, setErroInicial]         = useState('')
+  const [empresa, setEmpresa]                     = useState(null)
+  const [setores, setSetores]                     = useState([])
+  const [perguntasAtivas, setPerguntasAtivas]     = useState(PERGUNTAS)
+  const [loadingInicial, setLoadingInicial]       = useState(true)
+  const [erroInicial, setErroInicial]             = useState('')
 
-  // Setor escolhido pelo colaborador
   const [setorEscolhido, setSetorEscolhido] = useState(null)
 
-  // Quiz
   const [idx, setIdx]             = useState(0)
   const [respostas, setRespostas] = useState({})
   const [enviando, setEnviando]   = useState(false)
@@ -26,15 +23,24 @@ export default function QuestionarioPage() {
 
   useEffect(() => {
     async function carregar() {
-      if (!empresaId) { setErroInicial('Link inválido: empresa não informada.'); setLoadingInicial(false); return }
+      if (!empresaId) {
+        setErroInicial('Link inválido: empresa não informada.')
+        setLoadingInicial(false)
+        return
+      }
 
       const [{ data: emp }, { data: secs }] = await Promise.all([
         supabase.from('empresas').select('id, nome, consultor_id').eq('id', empresaId).single(),
         supabase.from('setores').select('id, nome').eq('empresa_id', empresaId).order('nome'),
       ])
-      if (!emp) { setErroInicial('Empresa não encontrada.'); setLoadingInicial(false); return }
 
-      // Busca perguntas customizadas do consultor dono da empresa
+      if (!emp) {
+        setErroInicial('Empresa não encontrada.')
+        setLoadingInicial(false)
+        return
+      }
+
+      // Carrega personalizações de texto do consultor dono da empresa
       if (emp.consultor_id) {
         const { data: custom } = await supabase
           .from('perguntas_customizadas')
@@ -43,12 +49,12 @@ export default function QuestionarioPage() {
           .maybeSingle()
 
         if (custom?.perguntas?.length) {
-          // Mescla: usa texto/opts customizados, mantém sf/inv/bloco do padrão
           const mapa = {}
           for (const p of custom.perguntas) mapa[p.id] = p
-          setPerguntasAtivas(PERGUNTAS.map(p => mapa[p.id]
-            ? { ...p, texto: mapa[p.id].texto, opts: mapa[p.id].opts }
-            : p
+          setPerguntasAtivas(PERGUNTAS.map(p =>
+            mapa[p.id]
+              ? { ...p, texto: mapa[p.id].texto, opts: mapa[p.id].opts ?? p.opts, inv: mapa[p.id].inv ?? p.inv }
+              : p
           ))
         }
       }
@@ -88,14 +94,14 @@ export default function QuestionarioPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  // ── Tela de loading inicial ──
+  // ── Loading ──
   if (loadingInicial) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <p className="text-muted text-sm">Carregando...</p>
     </div>
   )
 
-  // ── Tela de erro (link inválido) ──
+  // ── Erro ──
   if (erroInicial) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="card max-w-sm w-full text-center py-10">
@@ -105,17 +111,18 @@ export default function QuestionarioPage() {
     </div>
   )
 
-  // ── Tela de conclusão ──
+  // ── Conclusão ──
   if (concluido) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="card max-w-sm w-full text-center py-12">
         <div className="text-5xl mb-4">✅</div>
-        <h2 className="text-xl font-black text-navy">Resposta registrada! Obrigado por participar.</h2>
+        <h2 className="text-xl font-black text-navy">Resposta registrada!</h2>
+        <p className="text-sm text-muted mt-2">Obrigado por participar.</p>
       </div>
     </div>
   )
 
-  // ── Tela de seleção de setor ──
+  // ── Seleção de setor ──
   if (!setorEscolhido) return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-md mx-auto px-4 py-10">
@@ -130,15 +137,14 @@ export default function QuestionarioPage() {
           <p className="text-xs text-muted mb-4">Selecione seu setor para iniciar o questionário.</p>
 
           {setores.length === 0 ? (
-            <p className="text-sm text-danger text-center py-4">Nenhum setor disponível. Contate o responsável.</p>
+            <p className="text-sm text-danger text-center py-4">
+              Nenhum setor disponível. Contate o responsável.
+            </p>
           ) : (
             <div className="space-y-2">
               {setores.map(s => (
-                <button
-                  key={s.id}
-                  onClick={() => setSetorEscolhido(s)}
-                  className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl border-2 border-border hover:border-primary hover:bg-primary-light text-sm font-semibold text-navy transition-all text-left"
-                >
+                <button key={s.id} onClick={() => setSetorEscolhido(s)}
+                  className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl border-2 border-border hover:border-primary hover:bg-primary-light text-sm font-semibold text-navy transition-all text-left">
                   {s.nome}
                   <span className="text-primary text-xs">→</span>
                 </button>
@@ -160,14 +166,18 @@ export default function QuestionarioPage() {
           <h1 className="font-black text-base">Questionário de Avaliação Psicossocial</h1>
           <p className="text-xs text-white/70 mt-1">Suas respostas são <strong>anônimas</strong>.</p>
           <div className="flex gap-6 mt-3">
-            <div><div className="text-[10px] text-white/50 uppercase tracking-wide">Empresa</div>
-              <div className="text-sm font-bold">{empresa.nome}</div></div>
-            <div><div className="text-[10px] text-white/50 uppercase tracking-wide">Setor</div>
-              <div className="text-sm font-bold">{setorEscolhido.nome}</div></div>
+            <div>
+              <div className="text-[10px] text-white/50 uppercase tracking-wide">Empresa</div>
+              <div className="text-sm font-bold">{empresa.nome}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-white/50 uppercase tracking-wide">Setor</div>
+              <div className="text-sm font-bold">{setorEscolhido.nome}</div>
+            </div>
           </div>
-          {/* Progress */}
           <div className="mt-4 h-2 bg-white/20 rounded-full overflow-hidden">
-            <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: progPct + '%' }} />
+            <div className="h-full bg-primary rounded-full transition-all duration-300"
+              style={{ width: progPct + '%' }} />
           </div>
           <div className="text-right text-[11px] text-white/60 mt-1">{idx + 1} de {total}</div>
         </div>
@@ -190,7 +200,9 @@ export default function QuestionarioPage() {
                     : 'border-border hover:border-primary/50 hover:bg-gray-50'}`}>
                 <span className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center
                   ${respostas[p.id] === o.v ? 'border-primary' : 'border-gray-300'}`}>
-                  {respostas[p.id] === o.v && <span className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                  {respostas[p.id] === o.v && (
+                    <span className="w-2.5 h-2.5 rounded-full bg-primary" />
+                  )}
                 </span>
                 {o.t}
               </button>

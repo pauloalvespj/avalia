@@ -88,8 +88,7 @@ function KRRow({ kr, onChange, onDelete }) {
         />
         <span className="text-xs font-bold text-navy w-8 text-right">{kr.progresso ?? 0}%</span>
       </div>
-      <button className="text-muted hover:text-danger transition-colors text-xs px-1"
-        onClick={onDelete} title="Remover KR">✕</button>
+      <button onClick={onDelete} title="Remover KR" className="btn-delete">✕</button>
     </div>
   )
 }
@@ -108,8 +107,7 @@ function OKRCard({ okr, onChangeObjetivo, onChangeKR, onAddKR, onDeleteKR, onDel
           placeholder="Objetivo..."
           onChange={e => onChangeObjetivo(e.target.value)}
         />
-        <button className="text-muted hover:text-danger transition-colors text-sm flex-shrink-0"
-          onClick={onDelete} title="Excluir OKR">🗑</button>
+        <button onClick={onDelete} title="Excluir OKR" className="btn-delete">✕</button>
       </div>
 
       <div className="flex items-center gap-2 mb-4">
@@ -188,8 +186,7 @@ function KPITable({ kpis, onChange, onAdd, onDelete }) {
                   {seta === null && <span className="text-muted text-xs">—</span>}
                 </td>
                 <td className="pr-3 text-center">
-                  <button className="text-muted hover:text-danger transition-colors text-xs"
-                    onClick={() => onDelete(i)}>✕</button>
+                  <button onClick={() => onDelete(i)} title="Remover KPI" className="btn-delete">✕</button>
                 </td>
               </tr>
             )

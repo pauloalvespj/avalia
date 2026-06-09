@@ -97,9 +97,9 @@ function CardAcao({ acao, numero, onEditar, onDeletar }) {
             </span>
           )}
         </div>
-        <div className="flex gap-1 flex-shrink-0">
-          <button className="btn-ghost text-xs py-1 px-2" onClick={() => onEditar(acao)}>✏️</button>
-          <button className="btn-ghost text-xs py-1 px-2 text-danger" onClick={() => onDeletar(acao)}>🗑</button>
+        <div className="flex gap-1.5 flex-shrink-0">
+          <button onClick={() => onEditar(acao)} title="Editar" className="btn-edit">✎</button>
+          <button onClick={() => onDeletar(acao)} title="Excluir" className="btn-delete">✕</button>
         </div>
       </div>
 

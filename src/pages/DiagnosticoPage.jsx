@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useEmpresa } from '@/hooks/useEmpresa'
-import { nivelRisco } from '@/lib/perguntas'
+import { PERGUNTAS, nivelRisco } from '@/lib/perguntas'
 import { PageHeader, EmptyState, LoadingSpinner, Toast } from '@/components/ui'
 import { Link } from 'react-router-dom'
 import {
@@ -9,61 +9,83 @@ import {
   ResponsiveContainer, Cell, LabelList,
 } from 'recharts'
 
-// ── Estrutura de domínios e subescalas ──────────────────────────────────────
+// ── Domínios (7 domínios atualizados) ────────────────────────────────────────
 const DOMINIOS = [
-  { id: 'D1', nome: 'Exigências do Trabalho',     cor: '#c94040', sfs: [
-    { sf: 'sf1',  nome: 'Exigências quantitativas' },
-    { sf: 'sf2',  nome: 'Ritmo de trabalho' },
-    { sf: 'sf3',  nome: 'Exigências cognitivas' },
-    { sf: 'sf4',  nome: 'Exigências emocionais' },
-  ]},
-  { id: 'D2', nome: 'Organização e Conteúdo',      cor: '#d08030', sfs: [
-    { sf: 'sf5',  nome: 'Influência no trabalho' },
-    { sf: 'sf6',  nome: 'Possibilidades de desenvolvimento' },
-    { sf: 'sf7',  nome: 'Previsibilidade' },
-    { sf: 'sf8',  nome: 'Transparência do papel laboral' },
-  ]},
-  { id: 'D3', nome: 'Relações Sociais e Liderança', cor: '#2d8a5e', sfs: [
-    { sf: 'sf9',  nome: 'Recompensas' },
-    { sf: 'sf10', nome: 'Apoio social de superiores' },
-    { sf: 'sf11', nome: 'Comunidade social no trabalho' },
-    { sf: 'sf12', nome: 'Qualidade da liderança' },
-    { sf: 'sf13', nome: 'Confiança vertical' },
-    { sf: 'sf14', nome: 'Justiça e respeito' },
-  ]},
-  { id: 'D4', nome: 'Valores no Trabalho',          cor: '#3a7bd5', sfs: [
-    { sf: 'sf15', nome: 'Auto-eficácia' },
-    { sf: 'sf16', nome: 'Significado do trabalho' },
-    { sf: 'sf17', nome: 'Compromisso' },
-    { sf: 'sf18', nome: 'Satisfação no trabalho' },
-  ]},
-  { id: 'D5', nome: 'Saúde e Bem-Estar',            cor: '#7a4db0', sfs: [
-    { sf: 'sf19', nome: 'Insegurança laboral' },
-    { sf: 'sf20', nome: 'Saúde geral' },
-    { sf: 'sf21', nome: 'Conflito trabalho/família' },
-    { sf: 'sf22', nome: 'Problemas em dormir' },
-    { sf: 'sf23', nome: 'Burnout' },
-    { sf: 'sf24', nome: 'Stress' },
-    { sf: 'sf25', nome: 'Sintomas depressivos' },
-  ]},
-  { id: 'D6', nome: 'Comportamentos Ofensivos',     cor: '#8a1a1a', sfs: [
-    { sf: 'sf26', nome: 'Insultos e provocações verbais' },
-    { sf: 'sf27', nome: 'Assédio sexual' },
-    { sf: 'sf28', nome: 'Ameaças e violência física' },
-  ]},
+  { id:'D1', nome:'Exigência Laboral',            cor:'#c94040', sfs:['sf1','sf2','sf3','sf4'] },
+  { id:'D2', nome:'Organização do Trabalho',      cor:'#d08030', sfs:['sf5','sf6','sf7','sf8'] },
+  { id:'D3', nome:'Relações Sociais e Liderança', cor:'#2d8a5e', sfs:['sf9','sf10','sf11','sf12'] },
+  { id:'D4', nome:'Personalidade / Valores',      cor:'#3a7bd5', sfs:['sf13','sf14','sf15'] },
+  { id:'D5', nome:'Interface Indivíduo-Trabalho', cor:'#0891b2', sfs:['sf16','sf17','sf18','sf19'] },
+  { id:'D6', nome:'Saúde e Bem-Estar',            cor:'#7a4db0', sfs:['sf20','sf21','sf22','sf23','sf24','sf25'] },
+  { id:'D7', nome:'Comportamentos Ofensivos',     cor:'#8a1a1a', sfs:['sf26','sf27','sf28'] },
 ]
 
-// Mapa sf → { dominio, nomeSubescala }
-const SF_META = {}
-for (const d of DOMINIOS)
-  for (const s of d.sfs)
-    SF_META[s.sf] = { dominio: d.nome, dominioId: d.id, cor: d.cor, nome: s.nome }
-
 const NIVEL_STYLE = {
-  baixo:   { bg: '#dcfce7', color: '#166534', label: 'Baixo' },
-  médio:   { bg: '#fef9c3', color: '#854d0e', label: 'Médio' },
-  alto:    { bg: '#ffedd5', color: '#9a3412', label: 'Alto' },
-  crítico: { bg: '#fee2e2', color: '#991b1b', label: 'Crítico' },
+  baixo:    { bg:'#dcfce7', color:'#166534', dot:'#22c55e', label:'Baixo'    },
+  moderado: { bg:'#fef9c3', color:'#854d0e', dot:'#eab308', label:'Moderado' },
+  alto:     { bg:'#ffedd5', color:'#9a3412', dot:'#f97316', label:'Alto'     },
+  crítico:  { bg:'#fee2e2', color:'#991b1b', dot:'#ef4444', label:'Crítico'  },
+}
+
+const BLOCO_PREFIXO = { 1:'EL', 2:'OT', 3:'RS', 4:'PE', 5:'IT', 6:'SB', 7:'CO' }
+
+function codigoItem(p) {
+  const num = parseInt(p.id.replace('q', ''), 10)
+  return `${BLOCO_PREFIXO[p.bloco]}${String(num).padStart(2, '0')}`
+}
+
+function mesclarPerguntas(customArr) {
+  if (!customArr?.length) return PERGUNTAS
+  const mapa = {}
+  for (const p of customArr) mapa[p.id] = p
+  return PERGUNTAS.map(p =>
+    mapa[p.id]
+      ? { ...p, texto: mapa[p.id].texto ?? p.texto, opts: mapa[p.id].opts ?? p.opts, inv: mapa[p.id].inv ?? p.inv }
+      : p
+  )
+}
+
+// Calcula score médio por domínio a partir das respostas
+function calcularDominios(respostasArr, perguntas) {
+  const sfPergs = {}
+  for (const p of perguntas) {
+    if (!sfPergs[p.sf]) sfPergs[p.sf] = []
+    sfPergs[p.sf].push(p)
+  }
+  const sfAcum = {}
+  for (const resp of respostasArr) {
+    const r = resp.respostas ?? {}
+    for (const [sf, pergs] of Object.entries(sfPergs)) {
+      const vals = pergs
+        .map(p => { const v = r[p.id]; return v != null ? (p.inv ? 6 - v : v) : null })
+        .filter(v => v != null)
+      if (vals.length) {
+        if (!sfAcum[sf]) sfAcum[sf] = []
+        sfAcum[sf].push(vals.reduce((a, b) => a + b, 0) / vals.length)
+      }
+    }
+  }
+  const sfMedio = {}
+  for (const [sf, vals] of Object.entries(sfAcum))
+    sfMedio[sf] = vals.reduce((a, b) => a + b, 0) / vals.length
+
+  return DOMINIOS.map(d => {
+    const vals = d.sfs.map(sf => sfMedio[sf]).filter(v => v != null)
+    const score = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+    return { ...d, score }
+  })
+}
+
+// Calcula score por item
+function calcularItens(respostasArr, perguntas) {
+  return perguntas.map(p => {
+    const vals = respostasArr
+      .map(r => r.respostas?.[p.id])
+      .filter(v => v != null)
+      .map(v => p.inv ? 6 - v : v)
+    const score = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+    return { p, codigo: codigoItem(p), score }
+  })
 }
 
 function NivelBadge({ score }) {
@@ -77,83 +99,92 @@ function NivelBadge({ score }) {
   )
 }
 
-function mediaDominio(sfMap, sfs) {
-  const vals = sfs.map(s => sfMap[s.sf]).filter(v => v != null)
-  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
-}
-
-// Tooltip personalizado do gráfico
 function CustomTooltip({ active, payload }) {
   if (!active || !payload?.length) return null
-  const { nome, valor, cor } = payload[0].payload
-  if (valor == null) return null
-  const nivel = nivelRisco(valor)
+  const { nomeCompleto, score, cor } = payload[0].payload
+  if (score == null) return null
+  const nivel = nivelRisco(score)
   const { label, bg, color } = NIVEL_STYLE[nivel]
   return (
     <div className="bg-white border border-border rounded-xl px-3 py-2 shadow-lg text-xs">
-      <p className="font-bold text-navy mb-1">{nome}</p>
-      <p>Score médio: <strong>{valor.toFixed(2)}</strong></p>
+      <p className="font-bold text-navy mb-1">{nomeCompleto}</p>
+      <p>Score médio: <strong>{score.toFixed(2)}</strong></p>
       <span className="font-bold px-1.5 py-0.5 rounded" style={{ background: bg, color }}>{label}</span>
     </div>
   )
 }
 
+const CAMPOS = [
+  { key: 'riscos_txt',    label: 'Principais riscos identificados', placeholder: 'Descreva os principais riscos identificados na avaliação...' },
+  { key: 'protetores',    label: 'Fatores protetores',              placeholder: 'Descreva os fatores protetores identificados...' },
+  { key: 'recomendacoes', label: 'Recomendações',                   placeholder: 'Liste as principais recomendações para mitigação dos riscos...' },
+  { key: 'conclusao',     label: 'Conclusão',                       placeholder: 'Escreva a conclusão do diagnóstico...' },
+]
+
 export default function DiagnosticoPage() {
   const { empresaAtiva } = useEmpresa()
 
-  const [sfMap, setSfMap]             = useState({})
-  const [diag, setDiag]               = useState({ riscos_txt: '', protetores: '', recomendacoes: '', conclusao: '' })
+  const [setores, setSetores]         = useState([])
+  const [setorId, setSetorId]         = useState(null)
+  const [perguntas, setPerguntas]     = useState(PERGUNTAS)
+  const [chartData, setChartData]     = useState([])
+  const [itensCriticos, setItensCriticos] = useState([])
+  const [diag, setDiag]               = useState({ riscos_txt:'', protetores:'', recomendacoes:'', conclusao:'' })
   const [savedStatus, setSavedStatus] = useState({})
   const [loading, setLoading]         = useState(false)
-  const [consolidado, setConsolidado] = useState(null)
-  const [gerando, setGerando]         = useState(false)
-  const [multiSetor, setMultiSetor]   = useState(false)
   const [toast, setToast]             = useState(null)
   const debounceRef                   = useRef({})
 
+  // Carrega setores e pré-seleciona se houver apenas um
+  useEffect(() => {
+    if (!empresaAtiva) { setSetores([]); setSetorId(null); return }
+    supabase.from('setores').select('id, nome').eq('empresa_id', empresaAtiva.id).eq('ativo', true).order('nome')
+      .then(({ data }) => {
+        const lista = data ?? []
+        setSetores(lista)
+        if (lista.length === 1) setSetorId(lista[0].id)
+      })
+  }, [empresaAtiva?.id])
+
   const load = useCallback(async () => {
-    if (!empresaAtiva) return
+    if (!empresaAtiva || !setorId) return
     setLoading(true)
 
-    // Busca setores da empresa para agregar riscos
-    const { data: setoresEmp } = await supabase
-      .from('setores').select('id, nome').eq('empresa_id', empresaAtiva.id)
-    const setorIds = setoresEmp?.map(s => s.id) ?? []
-
-    const [{ data: todosRiscos }, { data: diagData }] = await Promise.all([
-      setorIds.length
-        ? supabase.from('riscos').select('fator, score, evidencias, setor_id').in('setor_id', setorIds)
-        : Promise.resolve({ data: [] }),
+    const [{ data: respostasData }, { data: customData }, { data: diagData }] = await Promise.all([
+      supabase.from('respostas_publicas').select('respostas').eq('setor_id', setorId),
+      supabase.from('perguntas_customizadas').select('perguntas')
+        .eq('consultor_id', empresaAtiva.consultor_id).maybeSingle(),
       supabase.from('diagnosticos').select('riscos_txt, protetores, recomendacoes, conclusao')
-        .eq('empresa_id', empresaAtiva.id).maybeSingle(),
+        .eq('setor_id', setorId).maybeSingle(),
     ])
 
-    // Agrega scores por fator (média entre setores)
-    const sfAgg = {}
-    const sfEv  = {}
-    for (const r of todosRiscos ?? []) {
-      if (!sfAgg[r.fator]) sfAgg[r.fator] = []
-      sfAgg[r.fator].push(r.score)
-      if (r.evidencias) sfEv[r.fator] = r.evidencias
-    }
-    const mapa = {}
-    for (const [fator, scores] of Object.entries(sfAgg)) {
-      mapa[fator] = parseFloat((scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2))
-    }
-    setSfMap(mapa)
+    const pergsAtivas = mesclarPerguntas(customData?.perguntas)
+    setPerguntas(pergsAtivas)
 
-    if (diagData) {
-      setDiag({
-        riscos_txt:    diagData.riscos_txt    ?? '',
-        protetores:    diagData.protetores    ?? '',
-        recomendacoes: diagData.recomendacoes ?? '',
-        conclusao:     diagData.conclusao     ?? '',
-      })
-    }
+    const resArr = respostasData ?? []
 
-    setMultiSetor((setoresEmp?.length ?? 0) >= 2)
+    // Gráfico por domínio
+    const dominios = calcularDominios(resArr, pergsAtivas)
+    setChartData(dominios.map(d => ({
+      nome: d.nome,
+      nomeCompleto: d.nome,
+      score: d.score,
+      cor: d.cor,
+    })))
+
+    // Itens com risco alto ou crítico (score ≥ 3.0)
+    const itens = calcularItens(resArr, pergsAtivas)
+      .filter(({ score }) => score != null && score >= 3.0)
+      .sort((a, b) => b.score - a.score)
+    setItensCriticos(itens)
+
+    setDiag(diagData
+      ? { riscos_txt: diagData.riscos_txt ?? '', protetores: diagData.protetores ?? '', recomendacoes: diagData.recomendacoes ?? '', conclusao: diagData.conclusao ?? '' }
+      : { riscos_txt:'', protetores:'', recomendacoes:'', conclusao:'' }
+    )
+
     setLoading(false)
-  }, [empresaAtiva])
+  }, [empresaAtiva, setorId])
 
   useEffect(() => { load() }, [load])
 
@@ -165,10 +196,10 @@ export default function DiagnosticoPage() {
   }
 
   async function salvarCampo(campo, valor) {
-    if (!empresaAtiva) return
+    if (!setorId) return
     const { error } = await supabase.from('diagnosticos').upsert(
-      { empresa_id: empresaAtiva.id, [campo]: valor },
-      { onConflict: 'empresa_id' }
+      { setor_id: setorId, [campo]: valor },
+      { onConflict: 'setor_id' }
     )
     if (error) {
       setToast({ message: 'Erro ao salvar: ' + error.message, type: 'error' })
@@ -179,267 +210,143 @@ export default function DiagnosticoPage() {
     }
   }
 
-  async function gerarConsolidado() {
-    if (!empresaAtiva) return
-    setGerando(true)
-
-    const { data: setores } = await supabase.from('setores').select('id, nome').eq('empresa_id', empresaAtiva.id)
-    if (!setores?.length) { setGerando(false); return }
-
-    const { data: todosRiscos } = await supabase
-      .from('riscos').select('setor_id, fator, score').in('setor_id', setores.map(s => s.id))
-
-    // Agrupa por sf → lista de { setor, score }
-    const porSf = {}
-    for (const r of todosRiscos ?? []) {
-      if (!porSf[r.fator]) porSf[r.fator] = []
-      const nomeSetor = setores.find(s => s.id === r.setor_id)?.nome ?? r.setor_id
-      porSf[r.fator].push({ setor: nomeSetor, score: r.score })
-    }
-
-    const transversais = []
-    const exclusivos   = []
-
-    for (const [sf, entradas] of Object.entries(porSf)) {
-      const altos = entradas.filter(e => e.score >= 4)
-      if (altos.length >= 2) {
-        transversais.push({ sf, nome: SF_META[sf]?.nome ?? sf, setores: altos.map(e => e.setor) })
-      } else if (altos.length === 1) {
-        exclusivos.push({ sf, nome: SF_META[sf]?.nome ?? sf, setor: altos[0].setor, score: altos[0].score })
-      }
-    }
-
-    // Setor com maior média geral
-    const mediasSetores = setores.map(s => {
-      const vals = (todosRiscos ?? []).filter(r => r.setor_id === s.id).map(r => r.score)
-      const media = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
-      return { nome: s.nome, media }
-    }).filter(s => s.media != null)
-
-    mediasSetores.sort((a, b) => b.media - a.media)
-    const maisCritico = mediasSetores[0] ?? null
-
-    setConsolidado({ transversais, exclusivos, maisCritico, mediasSetores })
-    setGerando(false)
-  }
-
   if (!empresaAtiva) return (
     <EmptyState icon="🏢" title="Selecione uma empresa"
       description="Use o menu superior para selecionar uma empresa."
       action={<Link to="/empresas" className="btn-primary">Ir para Empresas</Link>} />
   )
 
-  if (loading) return <LoadingSpinner />
-
-  // Dados para o gráfico
-  const chartData = DOMINIOS.map(d => ({
-    nome:  d.nome.split(' ').slice(0, 2).join(' '), // nome curto
-    nomeCompleto: d.nome,
-    valor: mediaDominio(sfMap, d.sfs),
-    cor:   d.cor,
-  }))
-
-  // Riscos altos e críticos (score ≥ 4)
-  const riscosAltos = Object.entries(sfMap)
-    .filter(([, score]) => score >= 4)
-    .map(([sf, score]) => ({ sf, score, ...SF_META[sf] }))
-    .sort((a, b) => b.score - a.score)
-
-  const CAMPOS = [
-    { key: 'riscos_txt',    label: 'Principais riscos identificados',     placeholder: 'Descreva os principais riscos identificados na avaliação...' },
-    { key: 'protetores',    label: 'Fatores protetores',                   placeholder: 'Descreva os fatores protetores identificados...' },
-    { key: 'recomendacoes', label: 'Recomendações',                        placeholder: 'Liste as principais recomendações para mitigação dos riscos...' },
-    { key: 'conclusao',     label: 'Conclusão',                            placeholder: 'Escreva a conclusão do diagnóstico...' },
-  ]
+  const setorNome = setores.find(s => s.id === setorId)?.nome
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Diagnóstico" subtitle={empresaAtiva.nome} />
+      <PageHeader
+        title="Diagnóstico"
+        subtitle={setorNome ? `${empresaAtiva.nome} · ${setorNome}` : empresaAtiva.nome}
+      />
 
-      {/* ── Visão Geral dos Riscos ── */}
-      <div className="card">
-        <div className="card-title">📊 Visão Geral dos Riscos por Domínio</div>
-        {!Object.keys(sfMap).length ? (
-          <p className="text-sm text-muted py-4 text-center">
-            Nenhum risco calculado ainda.{' '}
-            <Link to="/riscos" className="text-primary font-semibold hover:underline">Preencher riscos →</Link>
-          </p>
-        ) : (
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={chartData} layout="vertical" margin={{ top: 4, right: 60, left: 8, bottom: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e8ecf4" />
-              <XAxis type="number" domain={[0, 5]} ticks={[0,1,2,3,4,5]} tick={{ fontSize: 11 }} />
-              <YAxis type="category" dataKey="nome" width={130} tick={{ fontSize: 11, fill: '#1a2e4a' }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="valor" radius={[0, 4, 4, 0]} maxBarSize={22}>
-                <LabelList dataKey="valor" position="right" formatter={v => v != null ? v.toFixed(1) : ''} style={{ fontSize: 11, fontWeight: 700 }} />
-                {chartData.map((entry, i) => (
-                  <Cell key={i} fill={entry.valor != null ? entry.cor : '#e2e8f0'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </div>
-
-      {/* ── Riscos Altos e Críticos ── */}
-      <div className="card p-0 overflow-hidden">
-        <div className="card-title px-5 pt-5">🚨 Riscos Altos e Críticos</div>
-        {!riscosAltos.length ? (
-          <p className="text-sm text-success font-semibold px-5 pb-5">
-            ✅ Nenhum risco alto ou crítico identificado.
-          </p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-bg">
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted uppercase tracking-wide">Subescala</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted uppercase tracking-wide hidden sm:table-cell">Domínio</th>
-                <th className="px-4 py-2.5 text-xs font-semibold text-muted uppercase tracking-wide text-center">Score</th>
-                <th className="px-4 py-2.5 text-xs font-semibold text-muted uppercase tracking-wide text-center">Nível</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted uppercase tracking-wide hidden md:table-cell">Evidências</th>
-              </tr>
-            </thead>
-            <tbody>
-              {riscosAltos.map(r => (
-                <tr key={r.sf} className="border-b border-border last:border-0 hover:bg-bg/50">
-                  <td className="px-4 py-3">
-                    <span className="font-semibold text-navy">{r.nome}</span>
-                    <span className="text-xs text-muted ml-1.5">{r.sf}</span>
-                  </td>
-                  <td className="px-4 py-3 hidden sm:table-cell">
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full text-white"
-                      style={{ background: r.cor }}>
-                      {r.dominioId}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center font-black text-navy">{r.score.toFixed(1)}</td>
-                  <td className="px-4 py-3 text-center"><NivelBadge score={r.score} /></td>
-                  <td className="px-4 py-3 text-xs text-muted hidden md:table-cell">
-                    {sfMap[r.sf + '_ev'] || '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* ── Síntese do Diagnóstico ── */}
-      <div className="card">
-        <div className="card-title">📝 Síntese do Diagnóstico</div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {CAMPOS.map(({ key, label, placeholder }) => {
-            const status = savedStatus[key]
-            return (
-              <div key={key} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="label mb-0">{label}</label>
-                  {status === 'saved'   && <span className="text-xs text-success font-semibold">Salvo ✓</span>}
-                  {status === 'pending' && <span className="text-xs text-muted">Salvando…</span>}
-                  {status === 'error'   && <span className="text-xs text-danger">Erro ✕</span>}
-                </div>
-                <textarea
-                  className="input resize-none text-sm"
-                  rows={4}
-                  placeholder={placeholder}
-                  value={diag[key]}
-                  onChange={e => handleDiagChange(key, e.target.value)}
-                />
-              </div>
-            )
-          })}
+      {/* Seletor de setor */}
+      {setores.length > 0 && (
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-semibold text-navy whitespace-nowrap">Setor:</label>
+          <select className="input py-2 text-sm w-auto" value={setorId ?? ''}
+            onChange={e => { setSetorId(e.target.value || null) }}>
+            <option value="">Selecione...</option>
+            {setores.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
+          </select>
         </div>
-      </div>
+      )}
 
-      {/* ── Diagnóstico Consolidado ── */}
-      {multiSetor && (
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="card-title mb-0">🔀 Diagnóstico Consolidado entre Setores</div>
-              <p className="text-xs text-muted mt-0.5">Comparativo de riscos em todos os setores da empresa</p>
-            </div>
-            <button className="btn-secondary text-sm" onClick={gerarConsolidado} disabled={gerando}>
-              {gerando ? 'Gerando…' : 'Gerar síntese'}
-            </button>
+      {!setorId && (
+        <div className="card text-center py-10 text-muted text-sm">
+          Selecione um setor para ver o diagnóstico.
+        </div>
+      )}
+
+      {setorId && loading && <LoadingSpinner />}
+
+      {setorId && !loading && (
+        <>
+          {/* ── Gráfico por Domínio ── */}
+          <div className="card">
+            <div className="card-title">📊 Score Médio por Domínio</div>
+            {!chartData.some(d => d.score != null) ? (
+              <p className="text-sm text-muted py-4 text-center">
+                Nenhuma resposta coletada ainda.{' '}
+                <Link to="/respostas" className="text-primary font-semibold hover:underline">Ver respostas →</Link>
+              </p>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={chartData} layout="vertical" margin={{ top: 4, right: 60, left: 8, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e8ecf4" />
+                  <XAxis type="number" domain={[0, 5]} ticks={[0,1,2,3,4,5]} tick={{ fontSize: 11 }} />
+                  <YAxis type="category" dataKey="nome" width={210} tick={{ fontSize: 11, fill: '#1a2e4a' }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="score" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                    <LabelList dataKey="score" position="right"
+                      formatter={v => v != null ? v.toFixed(1) : ''}
+                      style={{ fontSize: 11, fontWeight: 700 }} />
+                    {chartData.map((entry, i) => (
+                      <Cell key={i} fill={entry.score != null ? entry.cor : '#e2e8f0'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
-          {consolidado && (
-            <div className="space-y-4 border-t border-border pt-4">
+          {/* ── Riscos Altos e Críticos por Item ── */}
+          <div className="card p-0 overflow-hidden">
+            <div className="card-title px-5 pt-5">🚨 Riscos Altos e Críticos por Item</div>
+            {!itensCriticos.length ? (
+              <p className="text-sm text-success font-semibold px-5 pb-5">
+                ✅ Nenhum risco alto ou crítico identificado.
+              </p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-bg">
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted uppercase tracking-wide w-16">Cód.</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted uppercase tracking-wide">Item</th>
+                    <th className="px-4 py-2.5 text-xs font-semibold text-muted uppercase tracking-wide text-center w-20">Score</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted uppercase tracking-wide w-40 hidden sm:table-cell">Risco %</th>
+                    <th className="px-4 py-2.5 text-xs font-semibold text-muted uppercase tracking-wide text-center w-28">Nível</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {itensCriticos.map(({ p, codigo, score }, i) => {
+                    const nivel = nivelRisco(score)
+                    const st    = NIVEL_STYLE[nivel]
+                    const pct   = Math.round((score - 1) / 4 * 100)
+                    return (
+                      <tr key={p.id} className={`border-b border-border last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                        <td className="px-4 py-3 font-mono font-bold text-xs text-muted whitespace-nowrap">{codigo}</td>
+                        <td className="px-4 py-3 font-semibold text-navy">{p.item}</td>
+                        <td className="px-4 py-3 text-center font-black" style={{ color: st.dot }}>{score.toFixed(2)}</td>
+                        <td className="px-4 py-3 hidden sm:table-cell">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: st.bg }}>
+                              <div className="h-full rounded-full" style={{ width: pct + '%', background: st.dot }} />
+                            </div>
+                            <span className="text-xs font-bold tabular-nums w-8 text-right" style={{ color: st.dot }}>{pct}%</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center"><NivelBadge score={score} /></td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
 
-              {/* Riscos transversais */}
-              <div>
-                <h4 className="text-sm font-bold text-navy mb-2">
-                  Riscos transversais{' '}
-                  <span className="text-muted font-normal">(score ≥ 4 em 2+ setores)</span>
-                </h4>
-                {!consolidado.transversais.length ? (
-                  <p className="text-xs text-muted">Nenhum risco transversal identificado.</p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {consolidado.transversais.map(r => (
-                      <div key={r.sf} className="flex items-start gap-2 text-sm">
-                        <span className="w-2 h-2 rounded-full bg-danger mt-1.5 flex-shrink-0" />
-                        <span>
-                          <strong className="text-navy">{r.nome}</strong>
-                          <span className="text-muted ml-1.5">({r.sf})</span>
-                          {' — '}
-                          <span className="text-muted">{r.setores.join(', ')}</span>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Riscos exclusivos */}
-              <div>
-                <h4 className="text-sm font-bold text-navy mb-2">
-                  Riscos exclusivos{' '}
-                  <span className="text-muted font-normal">(score ≥ 4 em apenas um setor)</span>
-                </h4>
-                {!consolidado.exclusivos.length ? (
-                  <p className="text-xs text-muted">Nenhum risco exclusivo identificado.</p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {consolidado.exclusivos.map(r => (
-                      <div key={r.sf} className="flex items-start gap-2 text-sm">
-                        <span className="w-2 h-2 rounded-full bg-warning mt-1.5 flex-shrink-0" />
-                        <span>
-                          <strong className="text-navy">{r.nome}</strong>
-                          <span className="text-muted ml-1.5">({r.sf})</span>
-                          {' — '}
-                          <span className="text-muted">{r.setor} · score {r.score.toFixed(1)}</span>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Setor mais crítico */}
-              {consolidado.maisCritico && (
-                <div className="bg-danger/5 border border-danger/20 rounded-xl px-4 py-3">
-                  <p className="text-sm">
-                    <span className="font-bold text-danger">Setor com perfil mais crítico: </span>
-                    <span className="font-semibold text-navy">{consolidado.maisCritico.nome}</span>
-                    <span className="text-muted ml-1.5">(média geral {consolidado.maisCritico.media.toFixed(2)})</span>
-                  </p>
-                  {consolidado.mediasSetores.length > 1 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {consolidado.mediasSetores.map(s => (
-                        <span key={s.nome} className="text-xs px-2 py-0.5 rounded-full bg-white border border-border">
-                          {s.nome}: <strong>{s.media.toFixed(2)}</strong>
-                        </span>
-                      ))}
+          {/* ── Síntese do Diagnóstico ── */}
+          <div className="card">
+            <div className="card-title">📝 Síntese do Diagnóstico</div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {CAMPOS.map(({ key, label, placeholder }) => {
+                const status = savedStatus[key]
+                return (
+                  <div key={key} className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="label mb-0">{label}</label>
+                      {status === 'saved'   && <span className="text-xs text-success font-semibold">Salvo ✓</span>}
+                      {status === 'pending' && <span className="text-xs text-muted">Salvando…</span>}
+                      {status === 'error'   && <span className="text-xs text-danger">Erro ✕</span>}
                     </div>
-                  )}
-                </div>
-              )}
+                    <textarea
+                      className="input resize-none text-sm"
+                      rows={4}
+                      placeholder={placeholder}
+                      value={diag[key]}
+                      onChange={e => handleDiagChange(key, e.target.value)}
+                    />
+                  </div>
+                )
+              })}
             </div>
-          )}
-        </div>
+          </div>
+        </>
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

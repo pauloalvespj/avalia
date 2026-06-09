@@ -13,10 +13,10 @@ function formatarData(iso) {
 }
 
 const NIVEL_BADGE = {
-  baixo:   { label: 'Baixo',   bg: '#dcfce7', color: '#166534' },
-  médio:   { label: 'Médio',   bg: '#fef9c3', color: '#854d0e' },
-  alto:    { label: 'Alto',    bg: '#ffedd5', color: '#9a3412' },
-  crítico: { label: 'Crítico', bg: '#fee2e2', color: '#991b1b' },
+  baixo:    { label: 'Baixo',     bg: '#dcfce7', color: '#166534' },
+  moderado: { label: 'Moderado',  bg: '#fef9c3', color: '#854d0e' },
+  alto:     { label: 'Alto',      bg: '#ffedd5', color: '#9a3412' },
+  crítico:  { label: 'Crítico',   bg: '#fee2e2', color: '#991b1b' },
 }
 
 function ScoreBadge({ respostas }) {

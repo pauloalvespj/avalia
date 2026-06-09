@@ -27,14 +27,14 @@ const SF_NOME = {
 
 const NIVEL_STYLE = {
   baixo:   { bg:'#dcfce7', color:'#166534', label:'Baixo' },
-  médio:   { bg:'#fef9c3', color:'#854d0e', label:'Médio' },
+  moderado: { bg:'#fef9c3', color:'#854d0e', label:'Moderado' },
   alto:    { bg:'#ffedd5', color:'#9a3412', label:'Alto'  },
   crítico: { bg:'#fee2e2', color:'#991b1b', label:'Crítico' },
 }
 
 const RH_LABEL = { sim:'Sim', parcial:'Parcialmente', nao:'Não' }
 const STATUS_LABEL = { pendente:'Pendente', em_andamento:'Em andamento', concluida:'Concluída' }
-const METODOLOGIA_PADRAO = `Este diagnóstico foi elaborado com base no instrumento COPSOQ II (Copenhagen Psychosocial Questionnaire, versão II), adaptado para o contexto brasileiro, em conformidade com os requisitos da NR-01 sobre gerenciamento de riscos ocupacionais, incluindo os fatores de risco psicossociais. O instrumento avalia 6 domínios e 28 subescalas em escala Likert de 1 a 5. Os scores são classificados como: Baixo (≤2), Médio (≤3), Alto (≤4) e Crítico (5).`
+const METODOLOGIA_PADRAO = `Este diagnóstico foi elaborado com base no instrumento COPSOQ II (Copenhagen Psychosocial Questionnaire, versão II), adaptado para o contexto brasileiro, em conformidade com os requisitos da NR-01 sobre gerenciamento de riscos ocupacionais, incluindo os fatores de risco psicossociais. O instrumento avalia 7 domínios e 28 subescalas em escala Likert de 1 a 5. Os scores são classificados como: Baixo (0–24%), Moderado (25–49%), Alto (50–74%) e Crítico (75–100%), calculados pela fórmula risco% = (score − 1) / 4 × 100.`
 
 function mediaDominio(sfMap, sfs) {
   const vals = sfs.map(sf => sfMap[sf]).filter(v => v != null)

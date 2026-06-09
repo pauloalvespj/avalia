@@ -9,10 +9,11 @@ export function useSetorLocal(empresaAtiva) {
 
   useEffect(() => {
     if (!empresaAtiva) { setSetores([]); setSetorId(null); return }
-    supabase.from('setores').select('id, nome').eq('empresa_id', empresaAtiva.id).order('nome')
+    supabase.from('setores').select('id, nome').eq('empresa_id', empresaAtiva.id).eq('ativo', true).order('nome')
       .then(({ data }) => {
-        setSetores(data ?? [])
-        // Não auto-seleciona — começa em "Todos"
+        const lista = data ?? []
+        setSetores(lista)
+        if (lista.length === 1) setSetorId(lista[0].id)
       })
   }, [empresaAtiva?.id])
 

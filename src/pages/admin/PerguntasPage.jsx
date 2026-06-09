@@ -4,42 +4,51 @@ import { useAuth } from '@/hooks/useAuth'
 import { PERGUNTAS } from '@/lib/perguntas'
 import { PageHeader, Toast, ConfirmModal } from '@/components/ui'
 
-// Clona profundamente para evitar mutações acidentais
+const BLOCO_PREFIXO = { 1:'EL', 2:'OT', 3:'RS', 4:'PE', 5:'IT', 6:'SB', 7:'CO' }
+
+function codigoPergunta(p) {
+  const num = parseInt(p.id.replace('q', ''), 10)
+  return `${BLOCO_PREFIXO[p.bloco]}${String(num).padStart(2, '0')}`
+}
+
 function clonar(arr) {
   return arr.map(p => ({ ...p, opts: p.opts.map(o => ({ ...o })) }))
 }
 
-// Verifica se um bloco tem alguma diferença em relação ao padrão
 function blocoAlterado(perguntasBloco, blocoNum) {
   const originais = PERGUNTAS.filter(p => p.bloco === blocoNum)
   return originais.some((orig, i) => {
     const custom = perguntasBloco[i]
     if (!custom) return false
     if (custom.texto !== orig.texto) return true
+    if (custom.inv !== orig.inv) return true
     return orig.opts.some((o, j) => o.t !== custom.opts[j]?.t)
   })
 }
 
-function BadgeBloco({ alterado }) {
-  return alterado
-    ? <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-warning/15 text-warning">Personalizado</span>
-    : <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-success/10 text-success">Padrão</span>
-}
-
 function PerguntaEditor({ pergunta, onChange }) {
+  const [opcoesAberto, setOpcoesAberto] = useState(false)
+
+  function handleOpt(i, valor) {
+    const novosOpts = pergunta.opts.map((o, j) => j === i ? { ...o, t: valor } : o)
+    onChange({ ...pergunta, opts: novosOpts })
+  }
+
   return (
     <div className="border border-border rounded-xl p-4 space-y-3">
       {/* Cabeçalho */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-mono font-bold text-muted">{pergunta.id}</span>
-        <span className="text-xs bg-primary-light text-primary font-bold px-1.5 py-0.5 rounded">
-          {pergunta.sf}
-        </span>
-        {pergunta.inv && (
-          <span className="text-xs bg-warning/10 text-warning font-bold px-1.5 py-0.5 rounded">
-            invertida
-          </span>
-        )}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs font-mono font-bold text-muted">{codigoPergunta(pergunta)}</span>
+        <span className="text-sm font-semibold text-navy">{pergunta.item}</span>
+        <label className="ml-auto flex items-center gap-1.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={pergunta.inv}
+            onChange={e => onChange({ ...pergunta, inv: e.target.checked })}
+            className="w-3.5 h-3.5 accent-warning"
+          />
+          <span className="text-xs font-semibold text-warning">Invertida</span>
+        </label>
       </div>
 
       {/* Enunciado */}
@@ -50,21 +59,29 @@ function PerguntaEditor({ pergunta, onChange }) {
         onChange={e => onChange({ ...pergunta, texto: e.target.value })}
       />
 
-      {/* Opções */}
-      <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-        {pergunta.opts.map((opt, i) => (
-          <div key={i} className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-muted w-4 flex-shrink-0">{opt.v}</span>
-            <input
-              className="input text-xs py-1.5"
-              value={opt.t}
-              onChange={e => {
-                const novosOpts = pergunta.opts.map((o, j) => j === i ? { ...o, t: e.target.value } : o)
-                onChange({ ...pergunta, opts: novosOpts })
-              }}
-            />
+      {/* Opções de resposta */}
+      <div>
+        <button
+          className="flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline"
+          onClick={() => setOpcoesAberto(v => !v)}
+        >
+          {opcoesAberto ? '▲' : '▼'} Opções de resposta
+        </button>
+
+        {opcoesAberto && (
+          <div className="mt-2 grid grid-cols-1 sm:grid-cols-5 gap-2">
+            {pergunta.opts.map((opt, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-muted w-4 flex-shrink-0">{opt.v}</span>
+                <input
+                  className="input text-xs py-1.5"
+                  value={opt.t}
+                  onChange={e => handleOpt(i, e.target.value)}
+                />
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
   )
@@ -80,16 +97,19 @@ function BlocoCard({ bloco, nome, perguntas, onSave, onRestaurar, onChangeP, sav
         className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-gray-50 transition-colors"
         onClick={() => setAberto(v => !v)}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <span className="text-xs font-bold text-white px-2 py-0.5 rounded"
             style={{ background: '#1a2e4a' }}>
-            Bloco {bloco}
+            Domínio {bloco}
           </span>
           <span className="font-bold text-navy text-sm">{nome}</span>
           <span className="text-xs text-muted">{perguntas.length} perguntas</span>
-          <BadgeBloco alterado={alterado} />
+          {alterado
+            ? <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-warning/15 text-warning">Personalizado</span>
+            : <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-success/10 text-success">Padrão</span>
+          }
         </div>
-        <span className="text-muted">{aberto ? '▲' : '▼'}</span>
+        <span className="text-muted ml-4">{aberto ? '▲' : '▼'}</span>
       </button>
 
       {aberto && (
@@ -108,14 +128,16 @@ function BlocoCard({ bloco, nome, perguntas, onSave, onRestaurar, onChangeP, sav
               onClick={() => onSave(bloco)}
               disabled={saving}
             >
-              {saving ? 'Salvando...' : 'Salvar bloco'}
+              {saving ? 'Salvando...' : 'Salvar domínio'}
             </button>
-            <button
-              className="btn-secondary text-xs px-4"
-              onClick={() => onRestaurar(bloco)}
-            >
-              Restaurar padrão
-            </button>
+            {alterado && (
+              <button
+                className="btn-secondary text-xs px-4"
+                onClick={() => onRestaurar(bloco)}
+              >
+                Restaurar padrão
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -140,12 +162,12 @@ export default function PerguntasPage() {
       .maybeSingle()
 
     if (data?.perguntas?.length) {
-      // Mescla: mantém estrutura do padrão, substitui texto/opts salvos
       const mapa = {}
       for (const p of data.perguntas) mapa[p.id] = p
-      setPerguntas(clonar(PERGUNTAS).map(p => mapa[p.id]
-        ? { ...p, texto: mapa[p.id].texto, opts: mapa[p.id].opts }
-        : p
+      setPerguntas(clonar(PERGUNTAS).map(p =>
+        mapa[p.id]
+          ? { ...p, texto: mapa[p.id].texto, opts: mapa[p.id].opts ?? p.opts, inv: mapa[p.id].inv ?? p.inv }
+          : p
       ))
     }
     setLoading(false)
@@ -154,38 +176,42 @@ export default function PerguntasPage() {
   useEffect(() => { load() }, [load])
 
   function handleChangeP(bloco, idx, updated) {
-    setPerguntas(prev => prev.map(p =>
-      p.bloco === bloco
-        ? (prev.filter(x => x.bloco === bloco).indexOf(p) === idx ? updated : p)
-        : p
-    ))
+    setPerguntas(prev => {
+      const novas = [...prev]
+      let i = 0
+      for (let j = 0; j < novas.length; j++) {
+        if (novas[j].bloco === bloco) {
+          if (i === idx) { novas[j] = updated; break }
+          i++
+        }
+      }
+      return novas
+    })
   }
 
   async function salvarBloco(bloco) {
     setSaving(true)
-    // Substitui as perguntas desse bloco no array completo atual
-    const payload = perguntas
     const { error } = await supabase
       .from('perguntas_customizadas')
-      .upsert({ consultor_id: user.id, perguntas: payload }, { onConflict: 'consultor_id' })
+      .upsert({ consultor_id: user.id, perguntas }, { onConflict: 'consultor_id' })
     setSaving(false)
     if (error) setToast({ message: 'Erro: ' + error.message, type: 'error' })
-    else setToast({ message: `Bloco ${bloco} salvo!`, type: 'success' })
+    else setToast({ message: 'Domínio salvo!', type: 'success' })
   }
 
   function restaurarBloco(bloco) {
     const originais = PERGUNTAS.filter(p => p.bloco === bloco)
     setPerguntas(prev => {
       const novas = [...prev]
-      let idxOriginal = 0
-      for (let i = 0; i < novas.length; i++) {
-        if (novas[i].bloco === bloco) {
-          novas[i] = clonar([originais[idxOriginal++]])[0]
+      let i = 0
+      for (let j = 0; j < novas.length; j++) {
+        if (novas[j].bloco === bloco) {
+          novas[j] = { ...originais[i++] }
         }
       }
       return novas
     })
-    setToast({ message: `Bloco ${bloco} restaurado para o padrão. Clique em "Salvar bloco" para confirmar.`, type: 'info' })
+    setToast({ message: 'Restaurado. Clique em "Salvar domínio" para confirmar.', type: 'info' })
   }
 
   async function restaurarTudo() {
@@ -198,39 +224,38 @@ export default function PerguntasPage() {
     setConfirmAll(false)
     if (error) { setToast({ message: 'Erro: ' + error.message, type: 'error' }); return }
     setPerguntas(clonar(PERGUNTAS))
-    setToast({ message: 'Todas as perguntas restauradas para o padrão COPSOQ II.', type: 'success' })
+    setToast({ message: 'Todas as perguntas restauradas para o padrão.', type: 'success' })
   }
 
-  // Agrupa blocos
   const blocos = [...new Set(PERGUNTAS.map(p => p.bloco))].map(b => ({
     bloco: b,
     nome:  PERGUNTAS.find(p => p.bloco === b).blocoNome,
     perguntas: perguntas.filter(p => p.bloco === b),
   }))
 
-  if (loading) return <div className="flex items-center justify-center py-20 text-muted text-sm">Carregando...</div>
-
   const algumAlterado = blocos.some(b => blocoAlterado(b.perguntas, b.bloco))
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-20 text-muted text-sm">Carregando...</div>
+  )
 
   return (
     <div className="space-y-4">
       <PageHeader
         title="Questionário COPSOQ II"
-        subtitle="Edite os enunciados e opções de resposta para todos os clientes da consultoria"
+        subtitle={`${blocos.length} domínios · ${PERGUNTAS.length} perguntas — ajuste os enunciados conforme necessário`}
         action={
-          <button
-            className="btn-secondary text-sm"
-            onClick={() => setConfirmAll(true)}
-            disabled={!algumAlterado}
-          >
-            Restaurar tudo
-          </button>
+          algumAlterado && (
+            <button className="btn-secondary text-sm" onClick={() => setConfirmAll(true)}>
+              Restaurar tudo
+            </button>
+          )
         }
       />
 
-      <div className="bg-warning/10 border border-warning/30 rounded-xl px-4 py-3 text-sm text-warning">
-        <strong>Atenção:</strong> As alterações aqui valem para o questionário enviado a <strong>todos os colaboradores</strong> de todos os clientes desta consultoria.
-        Subescalas (sf) e valores (1–5) são fixos e não podem ser alterados.
+      <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+        <strong>Atenção:</strong> Alterações aqui valem para o questionário enviado a <strong>todos os colaboradores</strong> desta consultoria.
+        Subfatores (sf) e escala de valores (1–5) são fixos.
       </div>
 
       <div className="space-y-3">
@@ -251,7 +276,7 @@ export default function PerguntasPage() {
       {confirmAll && (
         <ConfirmModal
           title="Restaurar tudo"
-          message="Restaurar todas as perguntas para o padrão original do COPSOQ II? Todas as personalizações serão perdidas."
+          message="Restaurar todas as perguntas para o texto padrão? Todas as personalizações serão perdidas."
           confirmLabel="Restaurar tudo"
           danger
           onConfirm={restaurarTudo}

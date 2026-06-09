@@ -24,7 +24,7 @@ const SF_NOME = {
 
 const NIVEL_STYLE = {
   baixo:   { bg:'#dcfce7', color:'#166534', label:'Baixo' },
-  médio:   { bg:'#fef9c3', color:'#854d0e', label:'Médio' },
+  moderado: { bg:'#fef9c3', color:'#854d0e', label:'Moderado' },
   alto:    { bg:'#ffedd5', color:'#9a3412', label:'Alto'  },
   crítico: { bg:'#fee2e2', color:'#991b1b', label:'Crítico' },
 }
@@ -32,9 +32,9 @@ const NIVEL_STYLE = {
 const STATUS_LABEL = { pendente:'Pendente', em_andamento:'Em andamento', concluida:'Concluída' }
 
 function nivelRisco(s) {
-  if (s <= 2) return 'baixo'
-  if (s <= 3) return 'médio'
-  if (s <= 4) return 'alto'
+  if (s < 2.0) return 'baixo'
+  if (s < 3.0) return 'moderado'
+  if (s < 4.0) return 'alto'
   return 'crítico'
 }
 

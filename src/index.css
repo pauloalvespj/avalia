@@ -49,6 +49,18 @@
            text-sm font-medium text-muted hover:bg-border-light
            transition-all cursor-pointer;
   }
+  .btn-edit {
+    @apply w-6 h-6 inline-flex items-center justify-center rounded text-xs
+           transition-colors hover:opacity-80 cursor-pointer flex-shrink-0;
+    background: #f1f5f9;
+    color: #475569;
+  }
+  .btn-delete {
+    @apply w-6 h-6 inline-flex items-center justify-center rounded text-xs font-bold
+           transition-colors hover:opacity-80 cursor-pointer flex-shrink-0;
+    background: #dc2626;
+    color: #fff;
+  }
 
   /* Inputs */
   .input {

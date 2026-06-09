@@ -8,7 +8,7 @@ import { nivelRisco } from '@/lib/perguntas'
 
 const NIVEL_COLOR = {
   baixo:   { bg: '#dcfce7', text: '#166534', label: 'Baixo'   },
-  médio:   { bg: '#fef9c3', text: '#854d0e', label: 'Médio'   },
+  moderado: { bg: '#fef9c3', text: '#854d0e', label: 'Moderado' },
   alto:    { bg: '#ffedd5', text: '#9a3412', label: 'Alto'    },
   crítico: { bg: '#fee2e2', text: '#991b1b', label: 'Crítico' },
 }

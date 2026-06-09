@@ -14,21 +14,16 @@ const NAV = [
   {
     label: 'Avaliação',
     items: [
-      { to: '/setores',         icon: '🏬', label: 'Sobre a Empresa' },
-      { to: '/admin/perguntas', icon: '📝', label: 'Perguntas'       },
-      { to: '/respostas',       icon: '📋', label: 'Respostas'       },
-      { to: '/riscos',          icon: '⚠️',  label: 'Riscos'         },
+      { to: '/setores',         icon: '🏬', label: 'Sobre a Empresa'  },
+      { to: '/admin/perguntas', icon: '📝', label: 'Perguntas'        },
+      { to: '/respostas',       icon: '📋', label: 'Respostas'        },
+      { to: '/riscos',          icon: '⚠️',  label: 'Riscos'          },
       { to: '/escuta',          icon: '🎙️', label: 'Escuta da Equipe' },
-    ],
-  },
-  {
-    label: 'Gestão',
-    items: [
-      { to: '/diagnostico', icon: '🔬', label: 'Diagnóstico'  },
-      { to: '/plano-acao',  icon: '🎯', label: 'Plano de Ação' },
-      { to: '/okrs',        icon: '📈', label: 'OKRs e KPIs'  },
-      { to: '/checklist',   icon: '✅', label: 'Checklist'    },
-      { to: '/relatorio',   icon: '📄', label: 'Relatório'    },
+      { to: '/diagnostico',     icon: '🔬', label: 'Diagnóstico'      },
+      { to: '/plano-acao',      icon: '🎯', label: 'Plano de Ação'    },
+      { to: '/okrs',            icon: '📈', label: 'OKRs e KPIs'      },
+      { to: '/checklist',       icon: '✅', label: 'Checklist'        },
+      { to: '/relatorio',       icon: '📄', label: 'Relatório'        },
     ],
   },
 ]

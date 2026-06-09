@@ -17,19 +17,19 @@ const STATUS_LEAD = {
 }
 
 const DOMINIOS = [
-  { id: 'D1', nome: 'Exigências do Trabalho',     sfs: ['sf1','sf2','sf3','sf4'] },
-  { id: 'D2', nome: 'Organização e Conteúdo',      sfs: ['sf5','sf6','sf7','sf8'] },
+  { id: 'D1', nome: 'Exigência Laboral',            sfs: ['sf1','sf2','sf3','sf4'] },
+  { id: 'D2', nome: 'Organização do Trabalho',      sfs: ['sf5','sf6','sf7','sf8'] },
   { id: 'D3', nome: 'Relações Sociais e Liderança', sfs: ['sf9','sf10','sf11','sf12','sf13','sf14'] },
-  { id: 'D4', nome: 'Valores no Trabalho',         sfs: ['sf15','sf16','sf17','sf18'] },
-  { id: 'D5', nome: 'Saúde e Bem-Estar',           sfs: ['sf19','sf20','sf21','sf22','sf23','sf24','sf25'] },
-  { id: 'D6', nome: 'Comportamentos Ofensivos',    sfs: ['sf26','sf27','sf28'] },
+  { id: 'D4', nome: 'Personalidade / Valores',      sfs: ['sf15','sf16','sf17','sf18'] },
+  { id: 'D5', nome: 'Saúde e Bem-Estar',            sfs: ['sf19','sf20','sf21','sf22','sf23','sf24','sf25','sf26'] },
+  { id: 'D6', nome: 'Comportamentos Ofensivos',     sfs: ['sf27','sf28'] },
 ]
 
 const NIVEL_COLOR = {
-  baixo:   { bar: '#22c55e', bg: '#dcfce7', text: '#166534' },
-  médio:   { bar: '#eab308', bg: '#fef9c3', text: '#854d0e' },
-  alto:    { bar: '#f97316', bg: '#ffedd5', text: '#9a3412' },
-  crítico: { bar: '#ef4444', bg: '#fee2e2', text: '#991b1b' },
+  baixo:    { bar: '#22c55e', bg: '#dcfce7', text: '#166534' },
+  moderado: { bar: '#eab308', bg: '#fef9c3', text: '#854d0e' },
+  alto:     { bar: '#f97316', bg: '#ffedd5', text: '#9a3412' },
+  crítico:  { bar: '#ef4444', bg: '#fee2e2', text: '#991b1b' },
 }
 
 const FASES_DEF = [
@@ -402,18 +402,8 @@ export default function SetoresPage() {
                       </div>
                     </div>
                     <div className="flex gap-2 flex-shrink-0" onClick={ev => ev.stopPropagation()}>
-                      <button
-                        onClick={() => abrirEditarSet(s)}
-                        title="Editar"
-                        className="w-6 h-6 flex items-center justify-center rounded transition-colors hover:opacity-80"
-                        style={{ background: '#f1f5f9', color: '#16a34a', fontSize: 12 }}
-                      >✎</button>
-                      <button
-                        onClick={() => setDeletingSet(s)}
-                        title="Excluir"
-                        className="w-6 h-6 flex items-center justify-center rounded font-bold transition-colors hover:opacity-80"
-                        style={{ background: '#dc2626', color: '#fff', fontSize: 12 }}
-                      >✕</button>
+                      <button onClick={() => abrirEditarSet(s)} title="Editar" className="btn-edit">✎</button>
+                      <button onClick={() => setDeletingSet(s)} title="Excluir" className="btn-delete">✕</button>
                     </div>
                   </div>
                 )
@@ -462,18 +452,8 @@ export default function SetoresPage() {
                   {[f.cargo, f.setor_id ? nomeSetor(f.setor_id) : null].filter(Boolean).join(' · ')}
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => abrirEditarFunc(f)}
-                    title="Editar"
-                    className="w-6 h-6 flex items-center justify-center rounded transition-colors hover:opacity-80"
-                    style={{ background: '#f1f5f9', color: '#16a34a', fontSize: 12 }}
-                  >✎</button>
-                  <button
-                    onClick={() => setDeletingFunc(f)}
-                    title="Excluir"
-                    className="w-6 h-6 flex items-center justify-center rounded font-bold transition-colors hover:opacity-80"
-                    style={{ background: '#dc2626', color: '#fff', fontSize: 12 }}
-                  >✕</button>
+                  <button onClick={() => abrirEditarFunc(f)} title="Editar" className="btn-edit">✎</button>
+                  <button onClick={() => setDeletingFunc(f)} title="Excluir" className="btn-delete">✕</button>
                 </div>
               </div>
             ))}

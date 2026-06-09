@@ -20,7 +20,8 @@ import RelatorioPage       from '@/pages/RelatorioPage'
 import RelatorioPublicoPage from '@/pages/RelatorioPublicoPage'
 import EscutaPage      from '@/pages/EscutaPage'
 import DenunciaPage    from '@/pages/DenunciaPage'
-import DenunciasPage   from '@/pages/DenunciasPage'
+import DenunciasPage        from '@/pages/DenunciasPage'
+import DenunciasEmpresaPage from '@/pages/DenunciasEmpresaPage'
 import AgendamentosPage        from '@/pages/AgendamentosPage'
 import PerfilPage              from '@/pages/PerfilPage'
 import ConfiguracoesPage       from '@/pages/admin/ConfiguracoesPage'
@@ -63,7 +64,8 @@ export default function App() {
         <Route path="checklist"   element={<ChecklistPage />} />
         <Route path="agendamentos" element={<AgendamentosPage />} />
         <Route path="escuta"      element={<EscutaPage />} />
-        <Route path="denuncias"   element={<DenunciasPage />} />
+        <Route path="denuncias"                element={<DenunciasPage />} />
+        <Route path="denuncias/:empresaId"    element={<DenunciasEmpresaPage />} />
         <Route path="relatorio"   element={<RelatorioPage />} />
         <Route path="perfil"      element={<PerfilPage />} />
 

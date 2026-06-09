@@ -18,7 +18,6 @@ const NAV = [
       { to: '/respostas', icon: '📋', label: 'Respostas'       },
       { to: '/riscos',    icon: '⚠️',  label: 'Riscos'         },
       { to: '/escuta',    icon: '🎙️', label: 'Escuta da Equipe' },
-      { to: '/denuncias', icon: '📢', label: 'Denúncias'        },
     ],
   },
   {
@@ -246,18 +245,17 @@ export default function Layout() {
               </div>
             ))}
 
-            {/* Administração */}
-            {(isAdmin || !perfil) && (
-              <div>
-                <div className="px-4 pt-3 pb-1 text-2xs font-bold uppercase tracking-widest"
-                  style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  Administração
-                </div>
-                {NAV_ADMIN.map(item => (
-                  <NavItem key={item.to} item={item} onClick={() => setSidebarOpen(false)} />
-                ))}
+            {/* Administração — Canal de Denúncias visível a todos; demais itens só para admins */}
+            <div>
+              <div className="px-4 pt-3 pb-1 text-2xs font-bold uppercase tracking-widest"
+                style={{ color: 'rgba(255,255,255,0.35)' }}>
+                Administração
               </div>
-            )}
+              <NavItem item={{ to: '/denuncias', icon: '📢', label: 'Canal de Denúncias' }} onClick={() => setSidebarOpen(false)} />
+              {(isAdmin || !perfil) && NAV_ADMIN.map(item => (
+                <NavItem key={item.to} item={item} onClick={() => setSidebarOpen(false)} />
+              ))}
+            </div>
 
           </nav>
         </aside>

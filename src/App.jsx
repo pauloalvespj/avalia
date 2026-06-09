@@ -72,7 +72,7 @@ export default function App() {
         {/* Rotas de administração — só para admins */}
         <Route path="admin/configuracoes" element={<AdminRoute><ConfiguracoesPage /></AdminRoute>} />
         <Route path="admin/usuarios"      element={<AdminRoute><UsuariosPage /></AdminRoute>} />
-        <Route path="admin/perguntas"     element={<AdminRoute><PerguntasPage /></AdminRoute>} />
+        <Route path="admin/perguntas"     element={<PerguntasPage />} />
         <Route path="empresas"            element={<AdminRoute><EmpresasPage /></AdminRoute>} />
       </Route>
 

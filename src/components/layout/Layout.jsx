@@ -8,16 +8,17 @@ const NAV = [
   {
     label: 'Principal',
     items: [
-      { to: '/dashboard', icon: '📊', label: 'Dashboard'       },
-      { to: '/setores',   icon: '🏬', label: 'Sobre a Empresa' },
+      { to: '/dashboard', icon: '📊', label: 'Dashboard' },
     ],
   },
   {
     label: 'Avaliação',
     items: [
-      { to: '/respostas', icon: '📋', label: 'Respostas'       },
-      { to: '/riscos',    icon: '⚠️',  label: 'Riscos'         },
-      { to: '/escuta',    icon: '🎙️', label: 'Escuta da Equipe' },
+      { to: '/setores',         icon: '🏬', label: 'Sobre a Empresa' },
+      { to: '/admin/perguntas', icon: '📝', label: 'Perguntas'       },
+      { to: '/respostas',       icon: '📋', label: 'Respostas'       },
+      { to: '/riscos',          icon: '⚠️',  label: 'Riscos'         },
+      { to: '/escuta',          icon: '🎙️', label: 'Escuta da Equipe' },
     ],
   },
   {
@@ -30,17 +31,10 @@ const NAV = [
       { to: '/relatorio',   icon: '📄', label: 'Relatório'    },
     ],
   },
-  {
-    label: 'Agenda',
-    items: [
-      { to: '/agendamentos', icon: '📅', label: 'Agendamentos' },
-    ],
-  },
 ]
 
 const NAV_ADMIN = [
   { to: '/empresas',            icon: '🏢', label: 'Empresas'      },
-  { to: '/admin/perguntas',     icon: '📝', label: 'Perguntas'     },
   { to: '/admin/configuracoes', icon: '⚙️', label: 'Configurações' },
   { to: '/admin/usuarios',      icon: '👥', label: 'Usuários'      },
 ]

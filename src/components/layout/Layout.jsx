@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useEmpresa } from '@/hooks/useEmpresa'
 import { useState, useEffect, useRef } from 'react'
@@ -196,6 +196,25 @@ export default function Layout() {
           )}
         </div>
       </header>
+
+      {/* ── BANNER SENHA PROVISÓRIA ── */}
+      {perfil?.senha_provisoria && (
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 flex-shrink-0"
+          style={{ background: '#fffbeb', borderBottom: '1px solid #fcd34d' }}>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="flex-shrink-0">🔑</span>
+            <p className="text-sm font-medium" style={{ color: '#92400e' }}>
+              Você está usando uma senha provisória — recomendamos alterá-la agora.
+            </p>
+          </div>
+          <Link to="/perfil"
+            className="text-xs font-bold flex-shrink-0 px-3 py-1.5 rounded-lg transition-colors"
+            style={{ background: '#f59e0b', color: '#fff' }}
+          >
+            Alterar senha →
+          </Link>
+        </div>
+      )}
 
       {/* ── LAYOUT ABAIXO DO TOPBAR ── */}
       <div className="flex flex-1 min-h-0 relative">

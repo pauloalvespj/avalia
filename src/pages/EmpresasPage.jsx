@@ -478,9 +478,20 @@ export default function EmpresasPage() {
                 <div className="text-xs text-muted mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
                   {e.cnpj        && <span>{e.cnpj}</span>}
                   {e.setor_ramo  && <span>{e.setor_ramo}</span>}
-                  {e.func_total > 0 && <span>{e.func_total} func.</span>}
-                  {e.responsavel && <span>{e.responsavel}</span>}
+                  {e.func_total > 0 && <span>{e.func_total} Funcionários</span>}
                 </div>
+                {(e.responsavel || e.contato) && (
+                  <div className="text-xs text-muted mt-0.5">
+                    <span className="font-semibold text-navy">Responsável:</span>{' '}
+                    {[e.responsavel, e.contato].filter(Boolean).join(' · ')}
+                  </div>
+                )}
+                {e.consultor_id && perfis.find(p => p.id === e.consultor_id) && (
+                  <div className="text-xs text-muted mt-0.5">
+                    <span className="font-semibold text-navy">Consultor:</span>{' '}
+                    {perfis.find(p => p.id === e.consultor_id)?.nome}
+                  </div>
+                )}
               </div>
               {/* Ações */}
               <div className="flex gap-2 flex-shrink-0 flex-wrap">
@@ -586,15 +597,22 @@ export default function EmpresasPage() {
             </Campo>
 
             <Campo label="Canal de Denúncias">
-              <label className="flex items-center gap-2 mt-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 rounded accent-primary"
-                  checked={!!form.canal_denuncias}
-                  onChange={e => setForm(p => ({ ...p, canal_denuncias: e.target.checked }))}
-                />
-                <span className="text-sm text-navy">Empresa possui canal de denúncias</span>
-              </label>
+              <div className="flex items-center gap-3 mt-1">
+                <button
+                  type="button"
+                  onClick={() => setForm(p => ({ ...p, canal_denuncias: !p.canal_denuncias }))}
+                  className="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                  style={{ background: form.canal_denuncias ? '#3a7bd5' : '#d1d5db' }}
+                >
+                  <span
+                    className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                    style={{ transform: form.canal_denuncias ? 'translateX(20px)' : 'translateX(0)' }}
+                  />
+                </button>
+                <span className="text-sm text-navy font-medium">
+                  {form.canal_denuncias ? 'Ativo' : 'Inativo'}
+                </span>
+              </div>
             </Campo>
 
             <div className="col-span-2">

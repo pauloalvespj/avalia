@@ -35,10 +35,13 @@ export default function PerfilPage() {
     if (senha.nova.length < 6) { setToast({ message: 'A senha deve ter pelo menos 6 caracteres.', type: 'error' }); return }
     setSalvandoSenha(true)
     const { error } = await supabase.auth.updateUser({ password: senha.nova })
+    if (error) { setSalvandoSenha(false); setToast({ message: 'Erro: ' + error.message, type: 'error' }); return }
+    // Remove o flag de senha provisória se existia
+    await supabase.from('perfis').update({ senha_provisoria: false }).eq('id', user.id)
     setSalvandoSenha(false)
-    if (error) { setToast({ message: 'Erro: ' + error.message, type: 'error' }); return }
     setToast({ message: 'Senha alterada com sucesso!', type: 'success' })
     setSenha({ nova: '', confirmar: '' })
+    refreshPerfil()
   }
 
   async function uploadFoto(file) {

@@ -34,6 +34,8 @@ export default function UsuariosPage() {
   const [formEdit, setFormEdit]   = useState({})
   const [deletando, setDeletando] = useState(null)
   const [email, setEmail]         = useState('')
+  const [nomeNovo, setNomeNovo]   = useState('')
+  const [cpfNovo, setCpfNovo]     = useState('')
   const [senha, setSenha]         = useState('')
   const [mostrarSenha, setMostrarSenha] = useState(false)
   const [roleNovo, setRoleNovo]   = useState('consultor')
@@ -109,15 +111,29 @@ export default function UsuariosPage() {
     if (senha.length < 6) { setToast({ message: 'Senha deve ter pelo menos 6 caracteres.', type: 'error' }); return }
     setSalvando(true)
     const { error } = await supabase.functions.invoke('admin-update-user', {
-      body: { action: 'create', email: email.trim(), password: senha, role: roleNovo },
+      body: { action: 'create', email: email.trim(), password: senha, role: roleNovo, nome: nomeNovo.trim() || null },
     })
     setSalvando(false)
     if (error) { setToast({ message: 'Erro: ' + error.message, type: 'error' }); return }
-    setToast({ message: `Usuário ${email} criado com sucesso!`, type: 'success' })
+
+    // Marca senha provisória e atualiza nome/cpf após o trigger criar o perfil (~1s)
+    const emailCriado = email.trim()
+    const nomeCriado  = nomeNovo.trim() || null
+    const cpfCriado   = cpfNovo.trim()  || null
+    setTimeout(async () => {
+      const { data: novo } = await supabase
+        .from('perfis').select('id').eq('email', emailCriado).maybeSingle()
+      if (novo) {
+        await supabase.from('perfis')
+          .update({ senha_provisoria: true, nome: nomeCriado, cpf: cpfCriado })
+          .eq('id', novo.id)
+      }
+      load()
+    }, 1500)
+
+    setToast({ message: `Usuário ${email} criado! Ele verá um aviso para trocar a senha.`, type: 'success' })
     setModalAdd(false)
-    setEmail('')
-    setSenha('')
-    setTimeout(load, 1500)
+    setEmail(''); setNomeNovo(''); setCpfNovo(''); setSenha('')
   }
 
   return (
@@ -158,6 +174,12 @@ export default function UsuariosPage() {
                     {sou && <span className="text-xs text-muted">(você)</span>}
                     <RoleBadge role={u.role} />
                     <StatusBadge ativo={u.ativo !== false} />
+                    {u.senha_provisoria && (
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: '#fef3c7', color: '#92400e' }}>
+                        🔑 Senha provisória
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs text-muted mt-0.5 truncate">{u.email}</div>
                   {u.created_at && (
@@ -240,20 +262,37 @@ export default function UsuariosPage() {
 
       {/* Modal adicionar usuário */}
       {modalAdd && (
-        <Modal title="Novo usuário" onClose={() => { setModalAdd(false); setEmail(''); setSenha('') }} size="sm">
+        <Modal title="Novo usuário" onClose={() => { setModalAdd(false); setEmail(''); setNomeNovo(''); setCpfNovo(''); setSenha('') }} size="sm">
+          {/* hidden inputs enganam o autofill do browser */}
+          <input type="text" name="fake-user" style={{ display: 'none' }} readOnly />
+          <input type="password" name="fake-pass" style={{ display: 'none' }} readOnly />
           <div className="space-y-4">
             <div>
-              <label className="label">E-mail</label>
-              <input className="input" type="email" placeholder="usuario@email.com"
-                value={email} onChange={e => setEmail(e.target.value)} autoFocus />
+              <label className="label">Nome completo</label>
+              <input className="input" type="text" placeholder="Dr. João Silva"
+                autoComplete="off"
+                value={nomeNovo} onChange={e => setNomeNovo(e.target.value)} autoFocus />
             </div>
             <div>
-              <label className="label">Senha</label>
+              <label className="label">E-mail *</label>
+              <input className="input" type="email" placeholder="usuario@email.com"
+                autoComplete="off"
+                value={email} onChange={e => setEmail(e.target.value)} />
+            </div>
+            <div>
+              <label className="label">CPF</label>
+              <input className="input" type="text" placeholder="000.000.000-00"
+                autoComplete="off"
+                value={cpfNovo} onChange={e => setCpfNovo(e.target.value)} />
+            </div>
+            <div>
+              <label className="label">Senha provisória *</label>
               <div className="relative">
                 <input
                   className="input pr-10"
                   type={mostrarSenha ? 'text' : 'password'}
                   placeholder="Mínimo 6 caracteres"
+                  autoComplete="new-password"
                   value={senha}
                   onChange={e => setSenha(e.target.value)}
                 />
@@ -265,6 +304,7 @@ export default function UsuariosPage() {
                   {mostrarSenha ? '🙈' : '👁'}
                 </button>
               </div>
+              <p className="text-2xs text-muted mt-1">O usuário verá um aviso para trocar na primeira sessão.</p>
             </div>
             <div>
               <label className="label">Papel</label>
@@ -274,7 +314,7 @@ export default function UsuariosPage() {
               </select>
             </div>
             <div className="flex gap-3 justify-end pt-2 border-t border-border">
-              <button className="btn-secondary" onClick={() => { setModalAdd(false); setEmail(''); setSenha('') }}>
+              <button className="btn-secondary" onClick={() => { setModalAdd(false); setEmail(''); setNomeNovo(''); setCpfNovo(''); setSenha('') }}>
                 Cancelar
               </button>
               <button className="btn-primary" onClick={criarDiretamente}

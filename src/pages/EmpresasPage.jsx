@@ -5,6 +5,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { useEmpresa } from '@/hooks/useEmpresa'
 import { PageHeader, Modal, EmptyState, LoadingSpinner, Toast, ConfirmModal } from '@/components/ui'
 
+
+
 // ── Pacotes de Créditos ───────────────────────────────────────────────────────
 
 function CreditosSection({ empresaId }) {
@@ -139,7 +141,7 @@ const FORM_VAZIO = {
   nome: '', cnpj: '', setor_ramo: '', func_total: '',
   data_inicio: '', responsavel: '', contato: '', demanda: '',
   historico: '', turnover: '', atestados: '', rh: '',
-  status_lead: 'lead', canal_denuncias: false,
+  status_lead: 'lead', canal_denuncias: false, consultor_id: '',
 }
 
 const RH_LABELS = { sim: 'RH Estruturado', parcial: 'RH Parcial', nao: 'Sem RH' }
@@ -176,7 +178,7 @@ function InfoRow({ label, value }) {
 
 // ── Modal "Ver dados" ─────────────────────────────────────────────────────────
 
-function VerModal({ empresa, onClose, onEditar, onAtualizar }) {
+function VerModal({ empresa, perfis = [], onClose, onEditar, onAtualizar }) {
   const [statusLead, setStatusLead]         = useState(empresa.status_lead ?? 'lead')
   const [canalDenuncias, setCanalDenuncias] = useState(empresa.canal_denuncias ?? false)
   const [saving, setSaving]                 = useState(false)
@@ -254,6 +256,7 @@ function VerModal({ empresa, onClose, onEditar, onAtualizar }) {
           <InfoRow label="Rotatividade"       value={empresa.turnover} />
           <InfoRow label="Atestados/mês"      value={empresa.atestados} />
           <InfoRow label="RH Estruturado"     value={RH_LABELS[empresa.rh]} />
+          <InfoRow label="Consultor Responsável" value={perfis.find(p => p.id === empresa.consultor_id)?.nome} />
           {empresa.demanda && (
             <div className="col-span-2"><InfoRow label="Principal Demanda" value={empresa.demanda} /></div>
           )}
@@ -279,11 +282,12 @@ function VerModal({ empresa, onClose, onEditar, onAtualizar }) {
 // ── Página principal ──────────────────────────────────────────────────────────
 
 export default function EmpresasPage() {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const { setEmpresaAtiva } = useEmpresa()
   const navigate = useNavigate()
 
   const [empresas, setEmpresas]   = useState([])
+  const [perfis, setPerfis]       = useState([])
   const [loading, setLoading]     = useState(true)
   const [modal, setModal]         = useState(false)
   const [verModal, setVerModal]   = useState(null)
@@ -296,12 +300,13 @@ export default function EmpresasPage() {
 
   async function load() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('empresas')
-      .select('*')
-      .order('created_at', { ascending: false })
+    const [{ data, error }, { data: perfisData }] = await Promise.all([
+      supabase.from('empresas').select('*').order('created_at', { ascending: false }),
+      supabase.from('perfis').select('id, nome, email, crp').eq('ativo', true).order('nome'),
+    ])
     if (error) setToast({ message: 'Erro ao carregar: ' + error.message, type: 'error' })
     setEmpresas(data ?? [])
+    setPerfis(perfisData ?? [])
     setLoading(false)
   }
 
@@ -309,7 +314,7 @@ export default function EmpresasPage() {
 
   function abrirNova() {
     setEditando(null)
-    setForm(FORM_VAZIO)
+    setForm({ ...FORM_VAZIO, consultor_id: user?.id ?? '' })
     setModal(true)
   }
 
@@ -330,6 +335,7 @@ export default function EmpresasPage() {
       rh:              e.rh              ?? '',
       status_lead:     e.status_lead     ?? 'lead',
       canal_denuncias: e.canal_denuncias ?? false,
+      consultor_id:    e.consultor_id    ?? '',
     })
     setModal(true)
   }
@@ -357,12 +363,15 @@ export default function EmpresasPage() {
       status_lead:     form.status_lead,
       canal_denuncias: form.canal_denuncias,
     }
+    // consultor_id: admin pode atribuir a qualquer pessoa; consultor sempre fica com o próprio id
+    const consultorId = isAdmin ? (form.consultor_id || user.id) : user.id
     let error
     if (editando) {
-      ;({ error } = await supabase.from('empresas').update(payload).eq('id', editando.id))
+      const updatePayload = isAdmin ? { ...payload, consultor_id: consultorId } : payload
+      ;({ error } = await supabase.from('empresas').update(updatePayload).eq('id', editando.id))
     } else {
       const { data: nova, error: errEmpresa } = await supabase
-        .from('empresas').insert({ ...payload, consultor_id: user.id }).select('id').single()
+        .from('empresas').insert({ ...payload, consultor_id: consultorId }).select('id').single()
       error = errEmpresa
       if (!error && nova) {
         await supabase.from('setores').insert({ empresa_id: nova.id, nome: 'Geral', func_setor: payload.func_total || 0 })
@@ -496,6 +505,7 @@ export default function EmpresasPage() {
       {verModal && (
         <VerModal
           empresa={verModal}
+          perfis={perfis}
           onClose={() => setVerModal(null)}
           onEditar={abrirEditar}
           onAtualizar={handleAtualizarLocal}
@@ -554,6 +564,19 @@ export default function EmpresasPage() {
               </select>
             </Campo>
 
+            {isAdmin && (
+              <Campo label="Consultor / Psicólogo Responsável">
+                <select className="input" value={form.consultor_id} onChange={f('consultor_id')}>
+                  <option value="">— Selecione —</option>
+                  {perfis.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.nome}{p.crp ? ` (CRP ${p.crp})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+            )}
+
             <Campo label="Status do Lead">
               <select className="input" value={form.status_lead} onChange={f('status_lead')}>
                 {Object.entries(STATUS_LEAD).map(([key, { emoji, label }]) => (
@@ -563,11 +586,15 @@ export default function EmpresasPage() {
             </Campo>
 
             <Campo label="Canal de Denúncias">
-              <select className="input" value={form.canal_denuncias ? 'true' : 'false'}
-                onChange={e => setForm(p => ({ ...p, canal_denuncias: e.target.value === 'true' }))}>
-                <option value="false">Inativo</option>
-                <option value="true">Ativo</option>
-              </select>
+              <label className="flex items-center gap-2 mt-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded accent-primary"
+                  checked={!!form.canal_denuncias}
+                  onChange={e => setForm(p => ({ ...p, canal_denuncias: e.target.checked }))}
+                />
+                <span className="text-sm text-navy">Empresa possui canal de denúncias</span>
+              </label>
             </Campo>
 
             <div className="col-span-2">

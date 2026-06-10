@@ -94,6 +94,36 @@ function EmpresaRow({ empresa, denuncias, onVerEmpresa }) {
   )
 }
 
+function EmpresaRowInativa({ empresa }) {
+  return (
+    <div className="card mb-3 opacity-60" style={{ borderStyle: 'dashed' }}>
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-navy text-sm">{empresa.nome}</span>
+            {empresa.setor_ramo && <span className="text-xs text-muted">— {empresa.setor_ramo}</span>}
+          </div>
+          <div className="flex items-center gap-1.5 mt-1">
+            <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>🔒 Canal de denúncias inativo</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            disabled
+            className="text-xs font-bold px-3 py-1.5 rounded-lg"
+            style={{ background: '#d1d5db', color: '#9ca3af', cursor: 'not-allowed', border: 'none' }}
+          >
+            🔗 Link
+          </button>
+          <button disabled className="btn-secondary text-xs" style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+            Bloqueado
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function DenunciasPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -107,7 +137,7 @@ export default function DenunciasPage() {
     if (!user) return
     setLoading(true)
     const [{ data: emps, error: e1 }, { data: dens, error: e2 }] = await Promise.all([
-      supabase.from('empresas').select('id, nome, setor_ramo').order('nome'),
+      supabase.from('empresas').select('id, nome, setor_ramo, canal_denuncias').order('nome'),
       supabase.from('denuncias').select('id, empresa_id, status').order('created_at', { ascending: false }),
     ])
     if (e1 || e2) setToast({ message: 'Erro ao carregar dados.', type: 'error' })
@@ -123,6 +153,9 @@ export default function DenunciasPage() {
   const totalEmAnalise  = denuncias.filter(d => d.status === 'em_analise').length
   const empresasComDen  = empresas.filter(e => denuncias.some(d => d.empresa_id === e.id)).length
 
+  const empresasAtivas  = empresas.filter(e => e.canal_denuncias)
+  const empresasInativas = empresas.filter(e => !e.canal_denuncias)
+
   return (
     <div>
       <PageHeader
@@ -132,7 +165,7 @@ export default function DenunciasPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[
-          { label: 'Empresas com canal', value: empresas.length,   icon: '🏢', bg: '#e0f2fe', color: '#075985' },
+          { label: 'Empresas com canal', value: empresasAtivas?.length ?? 0, icon: '🏢', bg: '#e0f2fe', color: '#075985' },
           { label: 'Total denúncias',    value: totalDenuncias,    icon: '📋', bg: '#f3e8ff', color: '#6b21a8' },
           { label: 'Recebidas',          value: totalRecebidas,    icon: '📥', bg: '#f1f5f9', color: '#475569' },
           { label: 'Em análise',         value: totalEmAnalise,    icon: '🔍', bg: '#fef9c3', color: '#854d0e' },
@@ -159,20 +192,37 @@ export default function DenunciasPage() {
         />
       ) : (
         <>
-          <div className="mb-3">
-            <h2 style={{ fontSize: 13, fontWeight: 700, color: '#1a2e4a' }}>
-              {empresas.length} empresa{empresas.length > 1 ? 's' : ''}
-              {empresasComDen > 0 && ` · ${empresasComDen} com denúncia${empresasComDen > 1 ? 's' : ''}`}
-            </h2>
-          </div>
-          {empresas.map(emp => (
-            <EmpresaRow
-              key={emp.id}
-              empresa={emp}
-              denuncias={denuncias.filter(d => d.empresa_id === emp.id)}
-              onVerEmpresa={id => navigate(`/denuncias/${id}`)}
-            />
-          ))}
+          {empresasAtivas.length > 0 && (
+            <>
+              <div className="mb-3">
+                <h2 style={{ fontSize: 13, fontWeight: 700, color: '#1a2e4a' }}>
+                  {empresasAtivas.length} empresa{empresasAtivas.length > 1 ? 's' : ''} com canal ativo
+                  {empresasComDen > 0 && ` · ${empresasComDen} com denúncia${empresasComDen > 1 ? 's' : ''}`}
+                </h2>
+              </div>
+              {empresasAtivas.map(emp => (
+                <EmpresaRow
+                  key={emp.id}
+                  empresa={emp}
+                  denuncias={denuncias.filter(d => d.empresa_id === emp.id)}
+                  onVerEmpresa={id => navigate(`/denuncias/${id}`)}
+                />
+              ))}
+            </>
+          )}
+
+          {empresasInativas.length > 0 && (
+            <>
+              <div className="mb-3 mt-5">
+                <h2 style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af' }}>
+                  {empresasInativas.length} empresa{empresasInativas.length > 1 ? 's' : ''} sem canal ativo
+                </h2>
+              </div>
+              {empresasInativas.map(emp => (
+                <EmpresaRowInativa key={emp.id} empresa={emp} />
+              ))}
+            </>
+          )}
         </>
       )}
 

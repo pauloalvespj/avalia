@@ -4,6 +4,72 @@ import { useEmpresa } from '@/hooks/useEmpresa'
 import { PERGUNTAS, scoreResposta, calcularRiscos, nivelRisco } from '@/lib/perguntas'
 import { PageHeader, EmptyState, LoadingSpinner, Toast, ConfirmModal, Modal } from '@/components/ui'
 
+function corProgresso(pct) {
+  if (pct >= 80) return '#16a34a'
+  if (pct >= 50) return '#2563eb'
+  if (pct >= 25) return '#d97706'
+  return '#dc2626'
+}
+
+function BarraRespondentes({ setores, respostas, setorFiltro }) {
+  // Quando setor específico: mostra só ele; quando todos: mostra todos os setores
+  const itens = setorFiltro === 'todos'
+    ? setores
+    : setores.filter(s => s.id === setorFiltro)
+
+  if (!itens.length) return null
+
+  // Só exibe se ao menos um setor tem func_setor > 0
+  if (!itens.some(s => s.func_setor > 0)) return null
+
+  return (
+    <div className="card mb-5 space-y-3">
+      <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+        <div className="text-xs font-bold text-muted uppercase tracking-widest">
+          Taxa de respondentes
+        </div>
+        <div className="flex items-center gap-3 text-2xs text-muted">
+          <span style={{ color: '#16a34a' }}>● ≥ 80% ideal</span>
+          <span style={{ color: '#2563eb' }}>● 50–79% bom</span>
+          <span style={{ color: '#d97706' }}>● 25–49% baixo</span>
+          <span style={{ color: '#dc2626' }}>● &lt; 25% crítico</span>
+        </div>
+      </div>
+      {itens.map(s => {
+        const total   = s.func_setor ?? 0
+        const count   = respostas.filter(r => r.setor_id === s.id).length
+        const pct     = total > 0 ? Math.min(100, Math.round((count / total) * 100)) : 0
+        const cor     = corProgresso(pct)
+        const semTotal = total === 0
+
+        return (
+          <div key={s.id}>
+            <div className="flex items-baseline justify-between mb-1">
+              <span className="text-xs font-semibold text-navy truncate">{s.nome}</span>
+              <span className="text-xs flex-shrink-0 ml-2 flex items-baseline gap-1.5">
+                <span className="text-muted">
+                  {semTotal ? `${count} resp.` : `${count} / ${total}`}
+                </span>
+                {!semTotal && (
+                  <span className="font-bold" style={{ color: cor }}>{pct}%</span>
+                )}
+              </span>
+            </div>
+            <div className="w-full rounded-full overflow-hidden" style={{ height: 10, background: '#e5e7eb' }}>
+              {!semTotal && (
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%`, background: cor }}
+                />
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function formatarData(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('pt-BR', {
@@ -133,7 +199,7 @@ export default function RespostasPage() {
   // Carrega lista de setores quando muda empresa
   useEffect(() => {
     if (!empresaAtiva) { setSetores([]); return }
-    supabase.from('setores').select('id, nome').eq('empresa_id', empresaAtiva.id).order('nome')
+    supabase.from('setores').select('id, nome, func_setor').eq('empresa_id', empresaAtiva.id).order('nome')
       .then(({ data }) => setSetores(data ?? []))
   }, [empresaAtiva])
 
@@ -290,6 +356,8 @@ export default function RespostasPage() {
         </select>
       </div>
 
+      <BarraRespondentes setores={setores} respostas={respostas} setorFiltro={setorFiltro} />
+
       {loading ? <LoadingSpinner /> : !respostas.length ? (
         <EmptyState icon="📋" title="Nenhuma resposta registrada"
           description="Compartilhe o link do questionário com os colaboradores para coletar respostas. A lista atualiza automaticamente." />
@@ -299,13 +367,11 @@ export default function RespostasPage() {
             <div key={r.id} className="card flex items-center gap-3">
               <span className="text-xs font-mono text-muted flex-shrink-0 w-6 text-center">{i + 1}</span>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-navy">
+                    {setores.find(s => s.id === r.setor_id)?.nome ?? '—'}
+                  </span>
                   <ScoreBadge respostas={r.respostas} />
-                  {setorFiltro === 'todos' && (
-                    <span className="text-xs text-muted truncate">
-                      {setores.find(s => s.id === r.setor_id)?.nome ?? '—'}
-                    </span>
-                  )}
                 </div>
                 <div className="text-xs text-muted mt-0.5">{formatarData(r.created_at)}</div>
               </div>

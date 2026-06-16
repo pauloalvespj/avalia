@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useEmpresa } from '@/hooks/useEmpresa'
 import { PageHeader, EmptyState, LoadingSpinner } from '@/components/ui'
@@ -85,8 +85,8 @@ export default function EscutaPage() {
 
   const [form, setForm]       = useState(FORM_VAZIO)
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving]   = useState(false)
   const [saved, setSaved]     = useState(false)
-  const debounceRef           = useRef(null)
 
   // Carrega setores e pré-seleciona se houver apenas um
   useEffect(() => {
@@ -113,15 +113,19 @@ export default function EscutaPage() {
   useEffect(() => { load() }, [load])
 
   function handleChange(campo, valor) {
-    const novoForm = { ...form, [campo]: valor }
-    setForm(novoForm)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => persistir(novoForm), 1000)
+    setForm(f => ({ ...f, [campo]: valor }))
   }
 
   function handleSetorChange(id) {
     setSetorId(id || null)
     setForm(FORM_VAZIO)
+  }
+
+  async function salvar() {
+    if (!setorId) return
+    setSaving(true)
+    await persistir(form)
+    setSaving(false)
   }
 
   async function persistir(novoForm) {
@@ -164,7 +168,17 @@ export default function EscutaPage() {
       <PageHeader
         title="Escuta da Equipe"
         subtitle={setorNome ? `${empresaAtiva.nome} · ${setorNome}` : empresaAtiva.nome}
-        action={saved ? <span className="text-xs text-success font-semibold">Salvo ✓</span> : null}
+        action={
+          setorId ? (
+            <div className="flex gap-2 items-center">
+              {saved && <span className="text-xs text-success font-semibold">Salvo ✓</span>}
+              <button className="btn-secondary" onClick={() => { load() }}>Cancelar</button>
+              <button className="btn-primary" disabled={saving} onClick={salvar}>
+                {saving ? 'Salvando...' : '💾 Salvar'}
+              </button>
+            </div>
+          ) : null
+        }
       />
 
       {/* Seletor de setor */}
@@ -238,6 +252,14 @@ export default function EscutaPage() {
                 placeholder="Anotações pessoais, hipóteses, contexto adicional..."
                 value={form.observacoes}
                 onChange={e => handleChange('observacoes', e.target.value)} />
+            </div>
+
+            {/* Rodapé */}
+            <div className="flex justify-end gap-2 pb-2">
+              <button className="btn-secondary" onClick={() => load()}>Cancelar</button>
+              <button className="btn-primary" disabled={saving} onClick={salvar}>
+                {saving ? 'Salvando...' : '💾 Salvar'}
+              </button>
             </div>
           </div>
 

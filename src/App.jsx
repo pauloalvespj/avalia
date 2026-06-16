@@ -18,7 +18,8 @@ import OkrsPage         from '@/pages/OkrsPage'
 import ChecklistPage    from '@/pages/ChecklistPage'
 import RelatorioPage       from '@/pages/RelatorioPage'
 import RelatorioPublicoPage from '@/pages/RelatorioPublicoPage'
-import EscutaPage      from '@/pages/EscutaPage'
+import EscutaPage           from '@/pages/EscutaPage'
+import EscutaGestoresPage  from '@/pages/EscutaGestoresPage'
 import DenunciaPage    from '@/pages/DenunciaPage'
 import DenunciasPage        from '@/pages/DenunciasPage'
 import DenunciasEmpresaPage from '@/pages/DenunciasEmpresaPage'
@@ -63,7 +64,8 @@ export default function App() {
         <Route path="okrs"        element={<OkrsPage />} />
         <Route path="checklist"   element={<ChecklistPage />} />
         <Route path="agendamentos" element={<AgendamentosPage />} />
-        <Route path="escuta"      element={<EscutaPage />} />
+        <Route path="escuta-equipe"   element={<EscutaPage />} />
+        <Route path="escuta-gestores" element={<EscutaGestoresPage />} />
         <Route path="denuncias"                element={<DenunciasPage />} />
         <Route path="denuncias/:empresaId"    element={<DenunciasEmpresaPage />} />
         <Route path="relatorio"   element={<RelatorioPage />} />

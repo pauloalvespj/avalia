@@ -318,7 +318,8 @@ export default function PlanoAcaoPage() {
   if (loading) return <LoadingSpinner />
 
   if (!setorId) return (
-    <div>
+    <div className="space-y-4">
+      <PageHeader title="Plano de Ação" eyebrow={empresaAtiva.nome} />
       <SetorSelect setores={setores} setorId={setorId} onChange={setSetorId} />
       <div className="card text-center py-10 text-muted text-sm">Selecione um setor acima para ver o plano de ação.</div>
     </div>
@@ -329,9 +330,9 @@ export default function PlanoAcaoPage() {
 
   return (
     <div>
-      <SetorSelect setores={setores} setorId={setorId} onChange={setSetorId} />
       <PageHeader
         title="Plano de Ação"
+        eyebrow={empresaAtiva.nome}
         subtitle={nomeSetor}
         action={
           <button className="btn-primary"
@@ -340,6 +341,7 @@ export default function PlanoAcaoPage() {
           </button>
         }
       />
+      <SetorSelect setores={setores} setorId={setorId} onChange={setSetorId} />
 
       {/* Abas */}
       <div className="flex gap-1 border-b border-border mb-5">

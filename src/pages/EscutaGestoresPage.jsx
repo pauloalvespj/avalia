@@ -272,7 +272,8 @@ export default function EscutaGestoresPage() {
         <>
           <PageHeader
             title="Escuta dos Gestores / RH"
-            subtitle={`${empresaAtiva.nome} — Roteiros de Entrevista`}
+            eyebrow={empresaAtiva.nome}
+            subtitle="Registro das entrevistas com gestores e lideranças"
             action={
               <button className="btn-primary" onClick={() => setShowModal(true)}>
                 + Nova Entrevista
@@ -345,6 +346,7 @@ export default function EscutaGestoresPage() {
 
           <PageHeader
             title="Roteiro de Entrevista — 7 Blocos"
+            eyebrow={empresaAtiva.nome}
             subtitle="Preencha durante ou após a entrevista. O roteiro guia a conversa."
             action={
               <div className="flex gap-2">

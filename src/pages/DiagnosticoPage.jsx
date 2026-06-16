@@ -222,7 +222,8 @@ export default function DiagnosticoPage() {
     <div className="space-y-5">
       <PageHeader
         title="Diagnóstico"
-        subtitle={setorNome ? `${empresaAtiva.nome} · ${setorNome}` : empresaAtiva.nome}
+        eyebrow={empresaAtiva.nome}
+        subtitle={setorNome ? `${setorNome} — Análise qualitativa dos riscos identificados` : 'Análise qualitativa dos riscos identificados'}
       />
 
       {/* Seletor de setor */}

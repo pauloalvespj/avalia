@@ -219,6 +219,9 @@ export default function ChecklistPage() {
 
       <div className="flex items-start justify-between gap-4">
         <div>
+          <p className="text-xs font-bold uppercase tracking-widest mb-0.5" style={{ color: '#3a7bd5' }}>
+            {empresaAtiva.nome}
+          </p>
           <h1 className="text-xl font-black text-navy">✅ Checklist do Projeto</h1>
           <p className="text-sm text-muted mt-0.5">Acompanhamento geral da empresa</p>
         </div>

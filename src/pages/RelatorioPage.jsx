@@ -278,8 +278,10 @@ export default function RelatorioPage() {
       {/* ── Controles (ocultos na impressão) ── */}
       <div className="no-print mb-4 flex items-center justify-between flex-wrap gap-3">
         <div>
+          <p className="text-xs font-bold uppercase tracking-widest mb-0.5" style={{ color: '#3a7bd5' }}>
+            {e.nome}
+          </p>
           <h1 className="text-xl font-black text-navy">Relatório</h1>
-          <p className="text-sm text-muted">{e.nome}</p>
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary text-xs"

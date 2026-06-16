@@ -318,6 +318,7 @@ export default function RespostasPage() {
     <div>
       <PageHeader
         title="Respostas"
+        eyebrow={empresaAtiva.nome}
         subtitle={`${nomeSetor} · ${respostas.length} resposta${respostas.length !== 1 ? 's' : ''}`}
         action={
           <div className="flex flex-wrap gap-2 justify-end">

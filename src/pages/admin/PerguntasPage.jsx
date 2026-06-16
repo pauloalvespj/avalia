@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useEmpresa } from '@/hooks/useEmpresa'
 import { PERGUNTAS } from '@/lib/perguntas'
 import { PageHeader, Toast, ConfirmModal } from '@/components/ui'
 
@@ -147,6 +148,7 @@ function BlocoCard({ bloco, nome, perguntas, onSave, onRestaurar, onChangeP, sav
 
 export default function PerguntasPage() {
   const { user } = useAuth()
+  const { empresaAtiva } = useEmpresa()
 
   const [perguntas, setPerguntas] = useState(clonar(PERGUNTAS))
   const [loading, setLoading]     = useState(true)
@@ -243,6 +245,7 @@ export default function PerguntasPage() {
     <div className="space-y-4">
       <PageHeader
         title="Questionário COPSOQ II"
+        eyebrow={empresaAtiva?.nome}
         subtitle={`${blocos.length} domínios · ${PERGUNTAS.length} perguntas — ajuste os enunciados conforme necessário`}
         action={
           algumAlterado && (

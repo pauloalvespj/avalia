@@ -426,7 +426,8 @@ export default function OkrsPage() {
     <div className="space-y-6">
       <PageHeader
         title="OKRs e KPIs"
-        subtitle={empresaAtiva.nome}
+        eyebrow={empresaAtiva.nome}
+        subtitle="Objetivos, resultados-chave e indicadores de desempenho"
         action={savedMsg ? <span className="text-xs text-success font-semibold">{savedMsg}</span> : null}
       />
 

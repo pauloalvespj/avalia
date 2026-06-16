@@ -349,7 +349,8 @@ export default function RiscosPage() {
     <div className="space-y-4">
       <PageHeader
         title="Riscos Psicossociais"
-        subtitle={`${empresaAtiva.nome} · ${totalResp} resposta${totalResp !== 1 ? 's' : ''} coletada${totalResp !== 1 ? 's' : ''}`}
+        eyebrow={empresaAtiva.nome}
+        subtitle={`${totalResp} resposta${totalResp !== 1 ? 's' : ''} coletada${totalResp !== 1 ? 's' : ''}`}
       />
 
       {/* Seletor de setor */}

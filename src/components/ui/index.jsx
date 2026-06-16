@@ -47,10 +47,15 @@ export function Modal({ title, children, onClose, size = 'md' }) {
 }
 
 // --- PageHeader ---
-export function PageHeader({ title, subtitle, action }) {
+export function PageHeader({ title, subtitle, eyebrow, action }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
       <div className="min-w-0">
+        {eyebrow && (
+          <p className="text-xs font-bold uppercase tracking-widest mb-0.5" style={{ color: '#3a7bd5' }}>
+            {eyebrow}
+          </p>
+        )}
         <h1 className="text-xl font-black text-navy">{title}</h1>
         {subtitle && <p className="text-sm text-muted mt-0.5">{subtitle}</p>}
       </div>

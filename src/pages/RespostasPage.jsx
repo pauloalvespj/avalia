@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useEmpresa } from '@/hooks/useEmpresa'
+import { useAuth } from '@/hooks/useAuth'
 import { PERGUNTAS, scoreResposta, calcularRiscos, nivelRisco } from '@/lib/perguntas'
-import { PageHeader, EmptyState, LoadingSpinner, Toast, ConfirmModal, Modal } from '@/components/ui'
+import { PageHeader, EmptyState, LoadingSpinner, Toast, ConfirmModal, Modal, AcessoNegado } from '@/components/ui'
 
 function corProgresso(pct) {
   if (pct >= 80) return '#16a34a'
@@ -174,6 +175,7 @@ function ModalRespostas({ resposta, idx, total, onPrev, onNext, onClose }) {
 
 export default function RespostasPage() {
   const { empresaAtiva } = useEmpresa()
+  const { podeEditar, estaOculto } = useAuth()
 
   const [setores, setSetores]         = useState([])
   const [setorFiltro, setSetorFiltro] = useState('todos')
@@ -309,6 +311,7 @@ export default function RespostasPage() {
     setToast({ message: 'Riscos calculados e salvos com sucesso!', type: 'success' })
   }
 
+  if (estaOculto('respostas')) return <AcessoNegado />
   if (!empresaAtiva) return (
     <EmptyState icon="🏢" title="Nenhuma empresa selecionada"
       description="Selecione uma empresa no menu superior." />
@@ -335,9 +338,11 @@ export default function RespostasPage() {
               title="Baixar planilha CSV">
               ⬇️ <span className="hidden sm:inline">Planilha</span>
             </button>
-            <button className="btn-primary text-xs" onClick={calcularEUpsert} disabled={calculando || !respostas.length}>
-              {calculando ? 'Calculando...' : '⚠️ Calcular riscos'}
-            </button>
+            {podeEditar('respostas') && (
+              <button className="btn-primary text-xs" onClick={calcularEUpsert} disabled={calculando || !respostas.length}>
+                {calculando ? 'Calculando...' : '⚠️ Calcular riscos'}
+              </button>
+            )}
           </div>
         }
       />
@@ -380,9 +385,11 @@ export default function RespostasPage() {
                 <button className="btn-primary text-xs w-8 h-8 flex items-center justify-center" title="Ver respostas" onClick={() => setVisualizando(i)}>
                   👁
                 </button>
-                <button className="btn-danger text-xs w-8 h-8 flex items-center justify-center" onClick={() => setDeleting(r)}>
-                  🗑
-                </button>
+                {podeEditar('respostas') && (
+                  <button className="btn-danger text-xs w-8 h-8 flex items-center justify-center" onClick={() => setDeleting(r)}>
+                    🗑
+                  </button>
+                )}
               </div>
             </div>
           ))}

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { PageHeader, EmptyState, LoadingSpinner, Toast, Modal, ConfirmModal } from '@/components/ui'
+import { PageHeader, EmptyState, LoadingSpinner, Toast, Modal, ConfirmModal, AcessoNegado } from '@/components/ui'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line,
@@ -318,7 +318,7 @@ function ModalAgendamento({ editando, empresas, onSave, onClose, saving }) {
   )
 }
 
-function CardAgendamento({ ag, onEditar, onDeletar, onStatusChange }) {
+function CardAgendamento({ ag, onEditar, onDeletar, onStatusChange, canEdit }) {
   const statusCfg  = STATUS_CFG[ag.status] ?? STATUS_CFG.pendente
   const [laudo, setLaudo]             = useState(ag.laudo ?? '')
   const [laudoModal, setLaudoModal]   = useState(false)
@@ -442,10 +442,12 @@ function CardAgendamento({ ag, onEditar, onDeletar, onStatusChange }) {
         </Modal>
       )}
 
-      <div className="flex gap-1 justify-end mt-3 border-t border-border pt-2">
-        <button className="btn-ghost text-xs py-1 px-2" onClick={() => onEditar(ag)}>✏️ Editar</button>
-        <button className="btn-ghost text-xs py-1 px-2 text-danger" onClick={() => onDeletar(ag)}>🗑 Excluir</button>
-      </div>
+      {canEdit && (
+        <div className="flex gap-1 justify-end mt-3 border-t border-border pt-2">
+          <button className="btn-ghost text-xs py-1 px-2" onClick={() => onEditar(ag)}>✏️ Editar</button>
+          <button className="btn-ghost text-xs py-1 px-2 text-danger" onClick={() => onDeletar(ag)}>🗑 Excluir</button>
+        </div>
+      )}
     </div>
   )
 }
@@ -628,7 +630,7 @@ function RelatorioSection({ agendamentos, onClose }) {
 }
 
 export default function AgendamentosPage() {
-  const { user } = useAuth()
+  const { user, podeEditar, estaOculto } = useAuth()
 
   const [empresas, setEmpresas]         = useState([])
   const [agendamentos, setAgendamentos] = useState([])
@@ -763,6 +765,7 @@ export default function AgendamentosPage() {
     realizados: doMes.filter(a => a.status === 'realizado').length,
   }
 
+  if (estaOculto('agendamentos')) return <AcessoNegado />
   if (loading) return <LoadingSpinner />
 
   return (
@@ -776,7 +779,7 @@ export default function AgendamentosPage() {
               onClick={() => setShowRelatorio(v => !v)}>
               {showRelatorio ? '← Lista' : '📊 Relatório'}
             </button>
-            <button className="btn-primary text-xs" onClick={abrirNovo}>+ Novo</button>
+            {podeEditar('agendamentos') && <button className="btn-primary text-xs" onClick={abrirNovo}>+ Novo</button>}
           </div>
         }
       />
@@ -873,6 +876,7 @@ export default function AgendamentosPage() {
                         colItems.map(ag => (
                           <CardAgendamento
                             key={ag.id} ag={ag}
+                            canEdit={podeEditar('agendamentos')}
                             onEditar={abrirEditar}
                             onDeletar={setDeleting}
                             onStatusChange={handleStatusChange}

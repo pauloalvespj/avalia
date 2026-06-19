@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { EmptyState, LoadingSpinner, Toast, Modal, PageHeader } from '@/components/ui'
+import { useAuth } from '@/hooks/useAuth'
 
 const CAT_COLOR = {
   'Assédio moral':                 { bg: '#fee2e2', color: '#991b1b' },
@@ -39,7 +40,7 @@ function DetailRow({ label, value }) {
   )
 }
 
-function DetalheModal({ denuncia, onClose, onSalvar, onExcluir }) {
+function DetalheModal({ denuncia, onClose, onSalvar, onExcluir, canEdit }) {
   const [obs, setObs]             = useState(denuncia.observacoes_internas ?? '')
   const [status, setStatus]       = useState(denuncia.status ?? 'recebida')
   const [saving, setSaving]       = useState(false)
@@ -79,7 +80,7 @@ function DetalheModal({ denuncia, onClose, onSalvar, onExcluir }) {
       <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 16, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
           <label className="label">Status</label>
-          <select className="input" value={status} onChange={e => setStatus(e.target.value)}>
+          <select className="input" value={status} disabled={!canEdit} onChange={e => setStatus(e.target.value)}>
             {Object.entries(STATUS).map(([key, { label }]) => (
               <option key={key} value={key}>{label}</option>
             ))}
@@ -93,11 +94,12 @@ function DetalheModal({ denuncia, onClose, onSalvar, onExcluir }) {
             style={{ minHeight: 100, resize: 'vertical' }}
             placeholder="Anotações internas sobre a apuração (não visíveis ao denunciante)..."
             value={obs}
+            readOnly={!canEdit}
             onChange={e => setObs(e.target.value)}
           />
         </div>
 
-        {confirmar ? (
+        {canEdit && (confirmar ? (
           <div style={{ background: '#fee2e2', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <span style={{ fontSize: 13, color: '#991b1b', fontWeight: 600 }}>Excluir permanentemente?</span>
             <div className="flex gap-2">
@@ -115,6 +117,11 @@ function DetalheModal({ denuncia, onClose, onSalvar, onExcluir }) {
               </button>
             </div>
           </div>
+        ))}
+        {!canEdit && (
+          <div className="flex justify-end">
+            <button className="btn-secondary" onClick={onClose}>Fechar</button>
+          </div>
         )}
       </div>
     </Modal>
@@ -124,6 +131,7 @@ function DetalheModal({ denuncia, onClose, onSalvar, onExcluir }) {
 export default function DenunciasEmpresaPage() {
   const { empresaId } = useParams()
   const navigate      = useNavigate()
+  const { podeEditar } = useAuth()
 
   const [empresa,     setEmpresa]     = useState(null)
   const [todasEmpresas, setTodasEmpresas] = useState([])
@@ -294,6 +302,7 @@ export default function DenunciasEmpresaPage() {
       {selecionada && (
         <DetalheModal
           denuncia={selecionada}
+          canEdit={podeEditar('denuncias')}
           onClose={() => setSelecionada(null)}
           onSalvar={handleSalvar}
           onExcluir={handleExcluir}

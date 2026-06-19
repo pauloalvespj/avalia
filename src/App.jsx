@@ -28,6 +28,7 @@ import PerfilPage              from '@/pages/PerfilPage'
 import ConfiguracoesPage       from '@/pages/admin/ConfiguracoesPage'
 import UsuariosPage            from '@/pages/admin/UsuariosPage'
 import PerguntasPage           from '@/pages/admin/PerguntasPage'
+import PerfisAcessoPage        from '@/pages/admin/PerfisAcessoPage'
 
 function PrivateRoute({ children }) {
   const { session } = useAuth()
@@ -72,9 +73,10 @@ export default function App() {
         <Route path="perfil"      element={<PerfilPage />} />
 
         {/* Rotas de administração — só para admins */}
-        <Route path="admin/configuracoes" element={<AdminRoute><ConfiguracoesPage /></AdminRoute>} />
-        <Route path="admin/usuarios"      element={<AdminRoute><UsuariosPage /></AdminRoute>} />
-        <Route path="admin/perguntas"     element={<PerguntasPage />} />
+        <Route path="admin/configuracoes"   element={<AdminRoute><ConfiguracoesPage /></AdminRoute>} />
+        <Route path="admin/usuarios"        element={<AdminRoute><UsuariosPage /></AdminRoute>} />
+        <Route path="admin/perfis-acesso"   element={<AdminRoute><PerfisAcessoPage /></AdminRoute>} />
+        <Route path="admin/perguntas"       element={<PerguntasPage />} />
         <Route path="empresas"            element={<AdminRoute><EmpresasPage /></AdminRoute>} />
       </Route>
 

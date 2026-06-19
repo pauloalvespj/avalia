@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useEmpresa } from '@/hooks/useEmpresa'
+import { useAuth } from '@/hooks/useAuth'
 import { PERGUNTAS, nivelRisco } from '@/lib/perguntas'
-import { PageHeader, EmptyState, LoadingSpinner, Toast } from '@/components/ui'
+import { PageHeader, EmptyState, LoadingSpinner, Toast, AcessoNegado } from '@/components/ui'
 import { Link } from 'react-router-dom'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -123,6 +124,7 @@ const CAMPOS = [
 
 export default function DiagnosticoPage() {
   const { empresaAtiva } = useEmpresa()
+  const { podeEditar, estaOculto } = useAuth()
 
   const [setores, setSetores]         = useState([])
   const [setorId, setSetorId]         = useState(null)
@@ -210,6 +212,7 @@ export default function DiagnosticoPage() {
     }
   }
 
+  if (estaOculto('diagnostico')) return <AcessoNegado />
   if (!empresaAtiva) return (
     <EmptyState icon="🏢" title="Selecione uma empresa"
       description="Use o menu superior para selecionar uma empresa."
@@ -340,6 +343,7 @@ export default function DiagnosticoPage() {
                       rows={4}
                       placeholder={placeholder}
                       value={diag[key]}
+                      readOnly={!podeEditar('diagnostico')}
                       onChange={e => handleDiagChange(key, e.target.value)}
                     />
                   </div>

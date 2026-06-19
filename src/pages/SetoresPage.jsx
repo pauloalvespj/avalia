@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useEmpresa } from '@/hooks/useEmpresa'
-import { PageHeader, Modal, EmptyState, LoadingSpinner, Toast, ConfirmModal } from '@/components/ui'
+import { useAuth } from '@/hooks/useAuth'
+import { PageHeader, Modal, EmptyState, LoadingSpinner, Toast, ConfirmModal, AcessoNegado } from '@/components/ui'
 import { useNavigate, Link } from 'react-router-dom'
 import { nivelRisco } from '@/lib/perguntas'
 
@@ -88,6 +89,7 @@ function Campo({ label, children }) {
 
 export default function SetoresPage() {
   const { empresaAtiva, setorAtivo, setSetorAtivo } = useEmpresa()
+  const { podeEditar, estaOculto } = useAuth()
   const navigate = useNavigate()
 
   // ── Setores ──────────────────────────────────────────────────────────────────
@@ -317,6 +319,7 @@ export default function SetoresPage() {
 
   const nomeSetor = id => setores.find(s => s.id === id)?.nome ?? '—'
 
+  if (estaOculto('setores')) return <AcessoNegado />
   if (!empresaAtiva) return (
     <EmptyState icon="🏢" title="Nenhuma empresa selecionada"
       description="Selecione uma empresa no menu superior para ver seus dados e setores." />
@@ -372,7 +375,7 @@ export default function SetoresPage() {
         <div className="card">
           <div className="card-title justify-between">
             <span>🏬 Setores</span>
-            <button className="btn-primary text-xs py-1.5 px-3" onClick={abrirNovoSet}>+ Novo Setor</button>
+            {podeEditar('setores') && <button className="btn-primary text-xs py-1.5 px-3" onClick={abrirNovoSet}>+ Novo Setor</button>}
           </div>
           <div className="mb-3">
             <input className="input py-1.5 text-xs w-full" placeholder="Buscar setor..."
@@ -382,7 +385,7 @@ export default function SetoresPage() {
           {loadingSet ? <LoadingSpinner /> : !setores.length ? (
             <EmptyState icon="🏬" title="Nenhum setor cadastrado"
               description="Crie o primeiro setor para gerar o link do questionário."
-              action={<button className="btn-primary" onClick={abrirNovoSet}>+ Novo Setor</button>} />
+              action={podeEditar('setores') ? <button className="btn-primary" onClick={abrirNovoSet}>+ Novo Setor</button> : null} />
           ) : (
             <div className="space-y-2">
               {setores.filter(s => !buscaSet.trim() || s.nome.toLowerCase().includes(buscaSet.toLowerCase())).map(s => {
@@ -401,10 +404,12 @@ export default function SetoresPage() {
                         {s.func_setor ? `${s.func_setor} funcionários` : 'Funcionários não informados'}
                       </div>
                     </div>
-                    <div className="flex gap-2 flex-shrink-0" onClick={ev => ev.stopPropagation()}>
-                      <button onClick={() => abrirEditarSet(s)} title="Editar" className="btn-edit">✎</button>
-                      <button onClick={() => setDeletingSet(s)} title="Excluir" className="btn-delete">✕</button>
-                    </div>
+                    {podeEditar('setores') && (
+                      <div className="flex gap-2 flex-shrink-0" onClick={ev => ev.stopPropagation()}>
+                        <button onClick={() => abrirEditarSet(s)} title="Editar" className="btn-edit">✎</button>
+                        <button onClick={() => setDeletingSet(s)} title="Excluir" className="btn-delete">✕</button>
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -416,7 +421,7 @@ export default function SetoresPage() {
         <div className="card overflow-hidden">
           <div className="card-title justify-between">
             <span>👤 Funcionários</span>
-            <button className="btn-primary text-xs py-1.5 px-3" onClick={abrirNovoFunc}>+ Novo</button>
+            {podeEditar('setores') && <button className="btn-primary text-xs py-1.5 px-3" onClick={abrirNovoFunc}>+ Novo</button>}
           </div>
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             <input className="input py-1.5 text-xs flex-1 min-w-0" placeholder="Buscar nome ou cargo..."

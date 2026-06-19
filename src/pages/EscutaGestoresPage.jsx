@@ -4,7 +4,7 @@ import { useEmpresa } from '@/hooks/useEmpresa'
 import { useAuth } from '@/hooks/useAuth'
 import {
   PageHeader, EmptyState, LoadingSpinner,
-  Modal, Toast, ConfirmModal,
+  Modal, Toast, ConfirmModal, AcessoNegado,
 } from '@/components/ui'
 import { Link } from 'react-router-dom'
 
@@ -19,7 +19,7 @@ const BLOCOS = [
 ]
 
 // ── Card de cada bloco no roteiro ──────────────────────────────────────────
-function BlocoCard({ bloco, texto, onChange, onBlur }) {
+function BlocoCard({ bloco, texto, onChange, onBlur, readOnly }) {
   const [saved, setSaved] = useState(false)
 
   async function handleBlur() {
@@ -48,6 +48,7 @@ function BlocoCard({ bloco, texto, onChange, onBlur }) {
         rows={5}
         placeholder="Anote aqui as observações da entrevista..."
         value={texto}
+        readOnly={readOnly}
         onChange={e => onChange(bloco.num, e.target.value)}
         onBlur={handleBlur}
       />
@@ -116,7 +117,7 @@ function EntrevistaModal({ titulo, inicial, labelSalvar, onClose, onSalvar }) {
 // ── Página principal ───────────────────────────────────────────────────────
 export default function EscutaGestoresPage() {
   const { empresaAtiva } = useEmpresa()
-  const { user } = useAuth()
+  const { user, podeEditar, estaOculto } = useAuth()
 
   const [view, setView] = useState('lista')           // 'lista' | 'roteiro'
   const [entrevistas, setEntrevistas] = useState([])
@@ -251,6 +252,7 @@ export default function EscutaGestoresPage() {
   }
 
   // ── Sem empresa selecionada ──────────────────────────────────────────────
+  if (estaOculto('escuta_gestores')) return <AcessoNegado />
   if (!empresaAtiva) return (
     <EmptyState
       icon="🏢"
@@ -274,11 +276,11 @@ export default function EscutaGestoresPage() {
             title="Escuta dos Gestores / RH"
             eyebrow={empresaAtiva.nome}
             subtitle="Registro das entrevistas com gestores e lideranças"
-            action={
+            action={podeEditar('escuta_gestores') ? (
               <button className="btn-primary" onClick={() => setShowModal(true)}>
                 + Nova Entrevista
               </button>
-            }
+            ) : null}
           />
 
           {loading && <LoadingSpinner />}
@@ -288,11 +290,11 @@ export default function EscutaGestoresPage() {
               icon="🎙️"
               title="Nenhuma entrevista registrada"
               description='Clique em "Nova Entrevista" para iniciar o roteiro com um gestor ou responsável de RH.'
-              action={
+              action={podeEditar('escuta_gestores') ? (
                 <button className="btn-primary" onClick={() => setShowModal(true)}>
                   + Nova Entrevista
                 </button>
-              }
+              ) : null}
             />
           )}
 
@@ -356,9 +358,11 @@ export default function EscutaGestoresPage() {
                 >
                   Cancelar
                 </button>
-                <button className="btn-primary" disabled={saving} onClick={salvar}>
-                  {saving ? 'Salvando...' : '💾 Salvar'}
-                </button>
+                {podeEditar('escuta_gestores') && (
+                  <button className="btn-primary" disabled={saving} onClick={salvar}>
+                    {saving ? 'Salvando...' : '💾 Salvar'}
+                  </button>
+                )}
               </div>
             }
           />
@@ -393,13 +397,15 @@ export default function EscutaGestoresPage() {
               >
                 {empresaAtiva.nome}
               </span>
-              <button
-                className="btn-edit"
-                title="Editar dados da entrevista"
-                onClick={() => setShowEditModal(true)}
-              >
-                ✏️
-              </button>
+              {podeEditar('escuta_gestores') && (
+                <button
+                  className="btn-edit"
+                  title="Editar dados da entrevista"
+                  onClick={() => setShowEditModal(true)}
+                >
+                  ✏️
+                </button>
+              )}
             </div>
           </div>
 
@@ -410,6 +416,7 @@ export default function EscutaGestoresPage() {
                 key={bloco.num}
                 bloco={bloco}
                 texto={respostas[bloco.num] ?? ''}
+                readOnly={!podeEditar('escuta_gestores')}
                 onChange={(num, texto) =>
                   setRespostas(r => ({ ...r, [num]: texto }))
                 }
@@ -420,12 +427,14 @@ export default function EscutaGestoresPage() {
 
           {/* Rodapé: excluir (esquerda) | cancelar + salvar (direita) */}
           <div className="flex items-center justify-between pt-2 pb-4">
-            <button
-              className="btn-danger text-xs"
-              onClick={() => setConfirmDelete(entrevistaAtiva)}
-            >
-              🗑 Excluir esta entrevista
-            </button>
+            {podeEditar('escuta_gestores') ? (
+              <button
+                className="btn-danger text-xs"
+                onClick={() => setConfirmDelete(entrevistaAtiva)}
+              >
+                🗑 Excluir esta entrevista
+              </button>
+            ) : <div />}
             <div className="flex gap-2">
               <button
                 className="btn-secondary"
@@ -433,13 +442,15 @@ export default function EscutaGestoresPage() {
               >
                 Cancelar
               </button>
-              <button
-                className="btn-primary"
-                disabled={saving}
-                onClick={salvar}
-              >
-                {saving ? 'Salvando...' : '💾 Salvar'}
-              </button>
+              {podeEditar('escuta_gestores') && (
+                <button
+                  className="btn-primary"
+                  disabled={saving}
+                  onClick={salvar}
+                >
+                  {saving ? 'Salvando...' : '💾 Salvar'}
+                </button>
+              )}
             </div>
           </div>
         </>

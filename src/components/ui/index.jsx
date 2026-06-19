@@ -3,6 +3,19 @@
 // Importe individualmente: import { Toast, Modal, ... } from '@/components/ui'
 // =========================================================
 
+// --- AcessoNegado ---
+export function AcessoNegado() {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <div className="text-5xl mb-4">🔒</div>
+      <h2 className="text-lg font-bold text-navy mb-2">Acesso Restrito</h2>
+      <p className="text-sm text-muted max-w-xs">
+        Você não tem permissão para acessar este módulo. Fale com o administrador do sistema.
+      </p>
+    </div>
+  )
+}
+
 // --- Toast (notificação temporária) ---
 import { useEffect } from 'react'
 

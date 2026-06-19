@@ -299,6 +299,7 @@ export default function EmpresasPage() {
   const [form, setForm]           = useState(FORM_VAZIO)
   const [saving, setSaving]       = useState(false)
   const [filtroStatus, setFiltroStatus] = useState('todos')
+  const [busca, setBusca] = useState('')
 
   async function load() {
     setLoading(true)
@@ -409,9 +410,11 @@ export default function EmpresasPage() {
     Object.keys(STATUS_LEAD).map(k => [k, empresas.filter(e => (e.status_lead ?? 'lead') === k).length])
   )
 
-  const filtradas = filtroStatus === 'todos'
-    ? empresas
-    : empresas.filter(e => (e.status_lead ?? 'lead') === filtroStatus)
+  const termo = busca.toLowerCase().trim()
+  const filtradas = empresas
+    .filter(e => filtroStatus === 'todos' || (e.status_lead ?? 'lead') === filtroStatus)
+    .filter(e => !termo || [e.nome, e.cnpj, e.setor_ramo, e.responsavel, e.telefone, e.email]
+      .some(v => v?.toLowerCase().includes(termo)))
 
   if (loading) return <LoadingSpinner />
 
@@ -444,6 +447,24 @@ export default function EmpresasPage() {
         </div>
       )}
 
+      {/* ── Busca ── */}
+      {empresas.length > 0 && (
+        <div className="relative">
+          <span className="absolute inset-y-0 left-3 flex items-center text-muted pointer-events-none">🔍</span>
+          <input
+            className="input pl-9"
+            style={{ background: '#fff' }}
+            placeholder="Buscar por nome, CNPJ, ramo, responsável..."
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+          />
+          {busca && (
+            <button className="absolute inset-y-0 right-3 flex items-center text-muted hover:text-navy"
+              onClick={() => setBusca('')}>✕</button>
+          )}
+        </div>
+      )}
+
       {/* ── Filtro ativo ── */}
       {filtroStatus !== 'todos' && (
         <div className="flex items-center gap-2">
@@ -461,9 +482,9 @@ export default function EmpresasPage() {
           description="Crie a primeira empresa para começar."
           action={<button className="btn-primary" onClick={abrirNova}>Criar empresa</button>} />
       ) : !filtradas.length ? (
-        <EmptyState icon="🔍" title="Nenhuma empresa neste status"
-          description="Tente outro filtro ou limpe o filtro atual."
-          action={<button className="btn-secondary" onClick={() => setFiltroStatus('todos')}>Ver todas</button>} />
+        <EmptyState icon="🔍" title="Nenhuma empresa encontrada"
+          description="Tente outro termo de busca ou ajuste os filtros."
+          action={<button className="btn-secondary" onClick={() => { setBusca(''); setFiltroStatus('todos') }}>Limpar filtros</button>} />
       ) : (
         <div className="grid gap-3">
           {filtradas.map(e => (

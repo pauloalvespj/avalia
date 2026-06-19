@@ -14,17 +14,17 @@ const NAV = [
   {
     label: 'Avaliação',
     items: [
-      { to: '/setores',         icon: '🏬', label: 'Sobre a Empresa'  },
-      { to: '/admin/perguntas', icon: '📝', label: 'Perguntas'        },
-      { to: '/respostas',       icon: '📋', label: 'Respostas'        },
-      { to: '/riscos',          icon: '⚠️',  label: 'Riscos'          },
-      { to: '/escuta-gestores', icon: '🧑‍💼', label: 'Escuta Gestores/RH' },
-      { to: '/escuta-equipe',   icon: '🎙️', label: 'Escuta da Equipe'    },
-      { to: '/diagnostico',     icon: '🔬', label: 'Diagnóstico'      },
-      { to: '/plano-acao',      icon: '🎯', label: 'Plano de Ação'    },
-      { to: '/okrs',            icon: '📈', label: 'OKRs e KPIs'      },
-      { to: '/checklist',       icon: '✅', label: 'Checklist'        },
-      { to: '/relatorio',       icon: '📄', label: 'Relatório'        },
+      { to: '/setores',         icon: '🏬', label: 'Sobre a Empresa',      modulo: 'setores'     },
+      { to: '/admin/perguntas', icon: '📝', label: 'Perguntas'                                   },
+      { to: '/respostas',       icon: '📋', label: 'Respostas',            modulo: 'respostas'   },
+      { to: '/riscos',          icon: '⚠️',  label: 'Riscos',              modulo: 'riscos'      },
+      { to: '/escuta-gestores', icon: '🧑‍💼', label: 'Escuta Gestores/RH', modulo: 'escuta_gestores' },
+      { to: '/escuta-equipe',   icon: '🎙️', label: 'Escuta da Equipe',    modulo: 'escuta_equipe'   },
+      { to: '/diagnostico',     icon: '🔬', label: 'Diagnóstico',          modulo: 'diagnostico' },
+      { to: '/plano-acao',      icon: '🎯', label: 'Plano de Ação',        modulo: 'plano_acao'  },
+      { to: '/okrs',            icon: '📈', label: 'OKRs e KPIs',          modulo: 'okrs'        },
+      { to: '/checklist',       icon: '✅', label: 'Checklist',            modulo: 'checklist'   },
+      { to: '/relatorio',       icon: '📄', label: 'Relatório',            modulo: 'relatorio'   },
     ],
   },
 ]
@@ -108,7 +108,7 @@ function NavItem({ item, onClick }) {
 }
 
 export default function Layout() {
-  const { user, signOut, isAdmin, perfil } = useAuth()
+  const { user, signOut, isAdmin, perfil, estaOculto } = useAuth()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -248,19 +248,26 @@ export default function Layout() {
                   style={{ color: 'rgba(255,255,255,0.35)' }}>
                   {group.label}
                 </div>
-                {group.items.map(item => (
-                  <NavItem key={item.to} item={item} onClick={() => setSidebarOpen(false)} />
-                ))}
+                {group.items
+                  .filter(item => !item.modulo || !estaOculto(item.modulo))
+                  .map(item => (
+                    <NavItem key={item.to} item={item} onClick={() => setSidebarOpen(false)} />
+                  ))}
               </div>
             ))}
 
-            {/* Administração — Canal de Denúncias visível a todos; demais itens só para admins */}
+            {/* Administração */}
             <div>
               <div className="px-4 pt-3 pb-1 text-2xs font-bold uppercase tracking-widest"
                 style={{ color: 'rgba(255,255,255,0.35)' }}>
                 Administração
               </div>
-              <NavItem item={{ to: '/denuncias', icon: '📢', label: 'Canal de Denúncias' }} onClick={() => setSidebarOpen(false)} />
+              {!estaOculto('agendamentos') && (
+                <NavItem item={{ to: '/agendamentos', icon: '📅', label: 'Agendamentos', modulo: 'agendamentos' }} onClick={() => setSidebarOpen(false)} />
+              )}
+              {!estaOculto('denuncias') && (
+                <NavItem item={{ to: '/denuncias', icon: '📢', label: 'Canal de Denúncias' }} onClick={() => setSidebarOpen(false)} />
+              )}
               {(isAdmin || !perfil) && NAV_ADMIN.map(item => (
                 <NavItem key={item.to} item={item} onClick={() => setSidebarOpen(false)} />
               ))}

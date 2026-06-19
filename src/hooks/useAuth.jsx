@@ -10,7 +10,10 @@ export function AuthProvider({ children }) {
   async function fetchPerfil(userId) {
     if (!userId) { setPerfil(null); return }
     const { data } = await supabase
-      .from('perfis').select('*').eq('id', userId).maybeSingle()
+      .from('perfis')
+      .select('*, perfil_acesso:perfis_acesso(*)')
+      .eq('id', userId)
+      .maybeSingle()
     setPerfil(data ?? null)
   }
 
@@ -39,13 +42,33 @@ export function AuthProvider({ children }) {
 
   const refreshPerfil = () => fetchPerfil(session?.user?.id)
 
+  // ── Helpers de permissão ─────────────────────────────────────────────────────
+  const isAdmin      = perfil?.role === 'admin'
+  const perfilAcesso = perfil?.perfil_acesso ?? null
+
+  function _nivel(modulo) {
+    if (isAdmin || !perfilAcesso) return 'editar'
+    return perfilAcesso.permissoes?.modulos?.[modulo] ?? 'editar'
+  }
+
+  function podeEditar(modulo) { return _nivel(modulo) === 'editar' }
+  function podeVer(modulo)    { const n = _nivel(modulo); return n === 'ver' || n === 'editar' }
+  function estaOculto(modulo) { return _nivel(modulo) === 'oculto' }
+
+  const escopo = isAdmin ? 'todas' : (perfilAcesso?.permissoes?.escopo ?? 'proprias')
+
   return (
     <AuthContext.Provider value={{
       session,
       user:    session?.user ?? null,
       perfil,
+      perfilAcesso,
       role:    perfil?.role ?? 'consultor',
-      isAdmin: perfil?.role === 'admin',
+      isAdmin,
+      escopo,
+      podeEditar,
+      podeVer,
+      estaOculto,
       signIn,
       signOut,
       refreshPerfil,

@@ -4,7 +4,7 @@ import { useEmpresa } from '@/hooks/useEmpresa'
 import { useSetorLocal } from '@/hooks/useSetorLocal'
 import { SetorSelect } from '@/components/ui/SetorSelect'
 import { useAuth } from '@/hooks/useAuth'
-import { PageHeader, EmptyState, LoadingSpinner, Toast, Modal, ConfirmModal } from '@/components/ui'
+import { PageHeader, EmptyState, LoadingSpinner, Toast, Modal, ConfirmModal, AcessoNegado } from '@/components/ui'
 import { Link } from 'react-router-dom'
 
 const DOMINIOS_OPTS = [
@@ -78,7 +78,7 @@ function Filtros({ filtroStatus, filtrodominio, onChange }) {
   )
 }
 
-function CardAcao({ acao, numero, onEditar, onDeletar }) {
+function CardAcao({ acao, numero, onEditar, onDeletar, canEdit }) {
   const prazoStr = acao.prazo
     ? new Date(acao.prazo + 'T00:00:00').toLocaleDateString('pt-BR')
     : null
@@ -97,10 +97,12 @@ function CardAcao({ acao, numero, onEditar, onDeletar }) {
             </span>
           )}
         </div>
-        <div className="flex gap-1.5 flex-shrink-0">
-          <button onClick={() => onEditar(acao)} title="Editar" className="btn-edit">✎</button>
-          <button onClick={() => onDeletar(acao)} title="Excluir" className="btn-delete">✕</button>
-        </div>
+        {canEdit && (
+          <div className="flex gap-1.5 flex-shrink-0">
+            <button onClick={() => onEditar(acao)} title="Editar" className="btn-edit">✎</button>
+            <button onClick={() => onDeletar(acao)} title="Excluir" className="btn-delete">✕</button>
+          </div>
+        )}
       </div>
 
       <p className="text-sm text-navy font-semibold mt-2">{acao.descricao}</p>
@@ -194,7 +196,7 @@ function ModalAcao({ editando, forcaTransversal, onSave, onClose, saving }) {
   )
 }
 
-function ListaAcoes({ acoes, onEditar, onDeletar, emptyText }) {
+function ListaAcoes({ acoes, onEditar, onDeletar, emptyText, canEdit }) {
   const [filtroStatus,  setFiltroStatus]  = useState('')
   const [filtrodominio, setFiltrodominio] = useState('')
 
@@ -226,6 +228,7 @@ function ListaAcoes({ acoes, onEditar, onDeletar, emptyText }) {
         <div className="space-y-3">
           {filtradas.map((a, i) => (
             <CardAcao key={a.id} acao={a} numero={i + 1}
+              canEdit={canEdit}
               onEditar={onEditar} onDeletar={onDeletar} />
           ))}
         </div>
@@ -237,7 +240,7 @@ function ListaAcoes({ acoes, onEditar, onDeletar, emptyText }) {
 export default function PlanoAcaoPage() {
   const { empresaAtiva } = useEmpresa()
   const { setores, setorId, setSetorId, nomeSetor } = useSetorLocal(empresaAtiva)
-  const { user }       = useAuth()
+  const { user, podeEditar, estaOculto } = useAuth()
 
   const [acoes, setAcoes]             = useState([])
   const [loading, setLoading]         = useState(false)
@@ -315,6 +318,7 @@ export default function PlanoAcaoPage() {
       action={<Link to="/empresas" className="btn-primary">Ir para Empresas</Link>} />
   )
 
+  if (estaOculto('plano_acao')) return <AcessoNegado />
   if (loading) return <LoadingSpinner />
 
   if (!setorId) return (
@@ -335,10 +339,12 @@ export default function PlanoAcaoPage() {
         eyebrow={empresaAtiva.nome}
         subtitle={nomeSetor}
         action={
-          <button className="btn-primary"
-            onClick={() => abrirNova(abaAtiva === 'transversal')}>
-            + Nova {abaAtiva === 'transversal' ? 'Ação Transversal' : 'Ação'}
-          </button>
+          {podeEditar('plano_acao') && (
+            <button className="btn-primary"
+              onClick={() => abrirNova(abaAtiva === 'transversal')}>
+              + Nova {abaAtiva === 'transversal' ? 'Ação Transversal' : 'Ação'}
+            </button>
+          )}
         }
       />
       <SetorSelect setores={setores} setorId={setorId} onChange={setSetorId} />
@@ -362,9 +368,11 @@ export default function PlanoAcaoPage() {
 
       {abaAtiva === 'setor' ? (
         <ListaAcoes acoes={acoesSetor} onEditar={abrirEditar} onDeletar={setDeleting}
+          canEdit={podeEditar('plano_acao')}
           emptyText="Nenhuma ação cadastrada para este setor. Clique em '+ Nova Ação' para começar." />
       ) : (
         <ListaAcoes acoes={acoesTransversal} onEditar={abrirEditar} onDeletar={setDeleting}
+          canEdit={podeEditar('plano_acao')}
           emptyText="Nenhuma ação transversal cadastrada. Marque 'Ação transversal' ao criar uma ação." />
       )}
 

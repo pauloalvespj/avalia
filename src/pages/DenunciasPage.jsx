@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { EmptyState, LoadingSpinner, Toast, Modal, PageHeader } from '@/components/ui'
+import { EmptyState, LoadingSpinner, Toast, Modal, PageHeader, AcessoNegado } from '@/components/ui'
 
 function Badge({ text, bg, color }) {
   return (
@@ -125,7 +125,7 @@ function EmpresaRowInativa({ empresa }) {
 }
 
 export default function DenunciasPage() {
-  const { user } = useAuth()
+  const { user, estaOculto } = useAuth()
   const navigate = useNavigate()
 
   const [empresas,  setEmpresas]  = useState([])
@@ -155,6 +155,8 @@ export default function DenunciasPage() {
 
   const empresasAtivas  = empresas.filter(e => e.canal_denuncias)
   const empresasInativas = empresas.filter(e => !e.canal_denuncias)
+
+  if (estaOculto('denuncias')) return <AcessoNegado />
 
   return (
     <div>

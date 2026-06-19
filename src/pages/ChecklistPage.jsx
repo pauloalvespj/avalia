@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useEmpresa } from '@/hooks/useEmpresa'
-import { EmptyState, LoadingSpinner, Toast } from '@/components/ui'
+import { useAuth } from '@/hooks/useAuth'
+import { EmptyState, LoadingSpinner, Toast, AcessoNegado } from '@/components/ui'
 import { Link } from 'react-router-dom'
 
 // ── Definição das fases e itens padrão ───────────────────────────────────────
@@ -57,7 +58,7 @@ const FASES = [
 const TOTAL = FASES.reduce((s, f) => s + f.itens.length, 0)
 
 // ── Componente de fase ────────────────────────────────────────────────────────
-function FaseBloco({ fase, itens, onToggle, onSemana }) {
+function FaseBloco({ fase, itens, onToggle, onSemana, readOnly }) {
   const ok    = itens.filter(i => i.concluido).length
   const total = itens.length
 
@@ -82,19 +83,22 @@ function FaseBloco({ fase, itens, onToggle, onSemana }) {
             <input
               type="checkbox"
               checked={!!item.concluido}
-              onChange={() => onToggle(item)}
-              className="w-4 h-4 flex-shrink-0 accent-primary cursor-pointer"
+              onChange={() => !readOnly && onToggle(item)}
+              disabled={readOnly}
+              className="w-4 h-4 flex-shrink-0 accent-primary cursor-pointer disabled:cursor-default"
             />
-            <span className={`flex-1 text-sm select-none cursor-pointer
+            <span className={`flex-1 text-sm select-none
+              ${!readOnly ? 'cursor-pointer' : ''}
               ${item.concluido ? 'line-through text-muted' : 'text-navy'}`}
-              onClick={() => onToggle(item)}>
+              onClick={() => !readOnly && onToggle(item)}>
               {item.texto}
             </span>
             <input
               type="text"
               placeholder="S—"
               value={item.semana_prevista ?? ''}
-              onChange={e => onSemana(item, e.target.value)}
+              readOnly={readOnly}
+              onChange={e => !readOnly && onSemana(item, e.target.value)}
               className="w-12 text-center text-xs border border-border rounded-lg px-1.5 py-1
                          outline-none focus:border-primary bg-bg text-muted placeholder-muted/40"
             />
@@ -108,6 +112,7 @@ function FaseBloco({ fase, itens, onToggle, onSemana }) {
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function ChecklistPage() {
   const { empresaAtiva } = useEmpresa()
+  const { podeEditar, estaOculto } = useAuth()
 
   const [itens, setItens]     = useState([])
   const [loading, setLoading] = useState(false)
@@ -209,6 +214,7 @@ export default function ChecklistPage() {
       action={<Link to="/empresas" className="btn-primary">Ir para Empresas</Link>} />
   )
 
+  if (estaOculto('checklist')) return <AcessoNegado />
   if (loading) return <LoadingSpinner />
 
   const totalConcluidos = itens.filter(i => i.concluido).length
@@ -225,9 +231,11 @@ export default function ChecklistPage() {
           <h1 className="text-xl font-black text-navy">✅ Checklist do Projeto</h1>
           <p className="text-sm text-muted mt-0.5">Acompanhamento geral da empresa</p>
         </div>
-        <button className="btn-primary flex-shrink-0" onClick={salvarTudo} disabled={saving}>
-          {saving ? 'Salvando...' : 'Salvar'}
-        </button>
+        {podeEditar('checklist') && (
+          <button className="btn-primary flex-shrink-0" onClick={salvarTudo} disabled={saving}>
+            {saving ? 'Salvando...' : 'Salvar'}
+          </button>
+        )}
       </div>
 
       {/* Barra de progresso */}
@@ -261,6 +269,7 @@ export default function ChecklistPage() {
             key={fase.fase}
             fase={fase}
             itens={itensFase}
+            readOnly={!podeEditar('checklist')}
             onToggle={handleToggle}
             onSemana={handleSemana}
           />

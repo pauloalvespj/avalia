@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useEmpresa } from '@/hooks/useEmpresa'
+import { useAuth } from '@/hooks/useAuth'
 import { useSetorLocal } from '@/hooks/useSetorLocal'
 import { SetorSelect } from '@/components/ui/SetorSelect'
-import { PageHeader, EmptyState, LoadingSpinner, Toast, ConfirmModal } from '@/components/ui'
+import { PageHeader, EmptyState, LoadingSpinner, Toast, ConfirmModal, AcessoNegado } from '@/components/ui'
 import { Link } from 'react-router-dom'
 
 // ── Seeds ────────────────────────────────────────────────────────────────────
@@ -64,18 +65,20 @@ function setaKpi(nome, atual, meta) {
 
 // ── Componente KR ────────────────────────────────────────────────────────────
 
-function KRRow({ kr, onChange, onDelete }) {
+function KRRow({ kr, onChange, onDelete, canEdit }) {
   return (
     <div className="flex items-center gap-3 py-2 border-b border-border/60 last:border-0">
       <input type="checkbox"
-        className="w-4 h-4 flex-shrink-0 accent-primary cursor-pointer"
+        className="w-4 h-4 flex-shrink-0 accent-primary cursor-pointer disabled:cursor-default"
         checked={(kr.progresso ?? 0) === 100}
+        disabled={!canEdit}
         onChange={e => onChange({ ...kr, progresso: e.target.checked ? 100 : 0 })}
       />
       <input
         className="flex-1 text-sm bg-transparent border-0 outline-none text-navy placeholder-muted
                    focus:bg-bg focus:px-2 focus:rounded-lg transition-all"
         value={kr.texto}
+        readOnly={!canEdit}
         placeholder="Descreva o key result..."
         onChange={e => onChange({ ...kr, texto: e.target.value })}
       />
@@ -83,19 +86,20 @@ function KRRow({ kr, onChange, onDelete }) {
         <input
           type="range" min={0} max={100} step={5}
           value={kr.progresso ?? 0}
+          disabled={!canEdit}
           onChange={e => onChange({ ...kr, progresso: Number(e.target.value) })}
           className="w-20 accent-primary"
         />
         <span className="text-xs font-bold text-navy w-8 text-right">{kr.progresso ?? 0}%</span>
       </div>
-      <button onClick={onDelete} title="Remover KR" className="btn-delete">✕</button>
+      {canEdit && <button onClick={onDelete} title="Remover KR" className="btn-delete">✕</button>}
     </div>
   )
 }
 
 // ── Componente OKR ───────────────────────────────────────────────────────────
 
-function OKRCard({ okr, onChangeObjetivo, onChangeKR, onAddKR, onDeleteKR, onDelete }) {
+function OKRCard({ okr, onChangeObjetivo, onChangeKR, onAddKR, onDeleteKR, onDelete, canEdit }) {
   const pct = mediaProgresso(okr.krs)
   return (
     <div className="card">
@@ -104,10 +108,11 @@ function OKRCard({ okr, onChangeObjetivo, onChangeKR, onAddKR, onDeleteKR, onDel
           className="flex-1 font-bold text-navy bg-transparent border-0 outline-none text-base
                      focus:bg-bg focus:px-2 focus:rounded-lg transition-all"
           value={okr.objetivo}
+          readOnly={!canEdit}
           placeholder="Objetivo..."
           onChange={e => onChangeObjetivo(e.target.value)}
         />
-        <button onClick={onDelete} title="Excluir OKR" className="btn-delete">✕</button>
+        {canEdit && <button onClick={onDelete} title="Excluir OKR" className="btn-delete">✕</button>}
       </div>
 
       <div className="flex items-center gap-2 mb-4">
@@ -121,25 +126,28 @@ function OKRCard({ okr, onChangeObjetivo, onChangeKR, onAddKR, onDeleteKR, onDel
       <div className="mb-3">
         {okr.krs.map((kr, i) => (
           <KRRow key={kr._lid ?? kr.id ?? i} kr={kr}
+            canEdit={canEdit}
             onChange={updated => onChangeKR(i, updated)}
             onDelete={() => onDeleteKR(i)} />
         ))}
       </div>
 
-      <button className="text-xs text-primary font-semibold hover:underline" onClick={onAddKR}>
-        + Adicionar Key Result
-      </button>
+      {canEdit && (
+        <button className="text-xs text-primary font-semibold hover:underline" onClick={onAddKR}>
+          + Adicionar Key Result
+        </button>
+      )}
     </div>
   )
 }
 
 // ── Componente tabela KPI ────────────────────────────────────────────────────
 
-function KPITable({ kpis, onChange, onAdd, onDelete }) {
+function KPITable({ kpis, onChange, onAdd, onDelete, canEdit }) {
   const [editCell, setEditCell] = useState(null)
 
   function Cell({ row, col, value }) {
-    const isEditing = editCell?.row === row && editCell?.col === col
+    const isEditing = canEdit && editCell?.row === row && editCell?.col === col
     if (isEditing) return (
       <input autoFocus
         className="w-full text-center text-sm border border-primary rounded px-1 py-0.5 outline-none"
@@ -150,8 +158,8 @@ function KPITable({ kpis, onChange, onAdd, onDelete }) {
       />
     )
     return (
-      <span className="cursor-pointer hover:text-primary transition-colors"
-        onClick={() => setEditCell({ row, col })}>
+      <span className={canEdit ? 'cursor-pointer hover:text-primary transition-colors' : ''}
+        onClick={() => canEdit && setEditCell({ row, col })}>
         {value || <span className="text-muted/50">—</span>}
       </span>
     )
@@ -186,18 +194,20 @@ function KPITable({ kpis, onChange, onAdd, onDelete }) {
                   {seta === null && <span className="text-muted text-xs">—</span>}
                 </td>
                 <td className="pr-3 text-center">
-                  <button onClick={() => onDelete(i)} title="Remover KPI" className="btn-delete">✕</button>
+                  {canEdit && <button onClick={() => onDelete(i)} title="Remover KPI" className="btn-delete">✕</button>}
                 </td>
               </tr>
             )
           })}
-          <tr>
-            <td colSpan={6} className="px-4 py-2.5">
-              <button className="text-xs text-primary font-semibold hover:underline" onClick={onAdd}>
-                + Adicionar KPI
-              </button>
-            </td>
-          </tr>
+          {canEdit && (
+            <tr>
+              <td colSpan={6} className="px-4 py-2.5">
+                <button className="text-xs text-primary font-semibold hover:underline" onClick={onAdd}>
+                  + Adicionar KPI
+                </button>
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
@@ -208,6 +218,7 @@ function KPITable({ kpis, onChange, onAdd, onDelete }) {
 
 export default function OkrsPage() {
   const { empresaAtiva }                              = useEmpresa()
+  const { podeEditar, estaOculto }                    = useAuth()
   const { setores, setorId, setSetorId, nomeSetor }   = useSetorLocal(empresaAtiva)
 
   // Estado OKRs (escopo: empresa)
@@ -416,6 +427,7 @@ export default function OkrsPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
+  if (estaOculto('okrs')) return <AcessoNegado />
   if (!empresaAtiva?.id) return (
     <EmptyState icon="🏢" title="Selecione uma empresa"
       description="Use o menu superior para selecionar uma empresa."
@@ -440,9 +452,11 @@ export default function OkrsPage() {
               <h2 className="text-base font-black text-navy">🎯 OKRs</h2>
               <p className="text-xs text-muted mt-0.5">{empresaAtiva.nome}</p>
             </div>
-            <button className="btn-primary text-xs py-1.5 px-3" onClick={handleAddOkr}>
-              + Novo OKR
-            </button>
+            {podeEditar('okrs') && (
+              <button className="btn-primary text-xs py-1.5 px-3" onClick={handleAddOkr}>
+                + Novo OKR
+              </button>
+            )}
           </div>
 
           {loadingOkrs ? <LoadingSpinner /> : !okrs.length ? (
@@ -452,6 +466,7 @@ export default function OkrsPage() {
               {okrs.map((okr, i) => (
                 <OKRCard key={okr._lid ?? okr.id}
                   okr={okr}
+                  canEdit={podeEditar('okrs')}
                   onChangeObjetivo={v => handleObjetivo(i, v)}
                   onChangeKR={(j, kr) => handleKR(i, j, kr)}
                   onAddKR={() => handleAddKR(i)}
@@ -481,6 +496,7 @@ export default function OkrsPage() {
             <div className="overflow-x-auto">
               <KPITable
                 kpis={kpis}
+                canEdit={podeEditar('okrs')}
                 onChange={handleKpiChange}
                 onAdd={handleAddKpi}
                 onDelete={handleDeleteKpi}

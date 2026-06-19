@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, Fragment } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useEmpresa } from '@/hooks/useEmpresa'
+import { useAuth } from '@/hooks/useAuth'
 import { PERGUNTAS, nivelRisco } from '@/lib/perguntas'
-import { PageHeader, EmptyState, LoadingSpinner } from '@/components/ui'
+import { PageHeader, EmptyState, LoadingSpinner, AcessoNegado } from '@/components/ui'
 
 // ── Domínios ──────────────────────────────────────────────────────────────────
 const DOMINIOS = [
@@ -290,6 +291,7 @@ function TabelaRiscos({ setor, respostas, perguntas }) {
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function RiscosPage() {
   const { empresaAtiva }                = useEmpresa()
+  const { estaOculto }                  = useAuth()
   const [setores, setSetores]           = useState([])
   const [setorId, setSetorId]           = useState('todos')
   const [respostasMap, setRespostasMap] = useState({})
@@ -339,6 +341,7 @@ export default function RiscosPage() {
     <EmptyState icon="🏢" title="Nenhuma empresa selecionada"
       description="Selecione uma empresa no menu superior." />
   )
+  if (estaOculto('riscos')) return <AcessoNegado />
   if (loading) return <LoadingSpinner />
 
   const totalResp        = Object.values(respostasMap).reduce((a, v) => a + v.length, 0)

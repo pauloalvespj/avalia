@@ -4,7 +4,7 @@ import { useEmpresa } from '@/hooks/useEmpresa'
 import { useAuth } from '@/hooks/useAuth'
 import {
   PageHeader, EmptyState, LoadingSpinner,
-  Modal, Toast, ConfirmModal,
+  Modal, Toast, ConfirmModal, AcessoNegado,
 } from '@/components/ui'
 import { Link } from 'react-router-dom'
 
@@ -18,7 +18,7 @@ const EIXOS = [
 ]
 
 // ── Card colapsável de cada eixo ───────────────────────────────────────────
-function EixoCard({ eixo, sintese, atencao, onChange, onBlur }) {
+function EixoCard({ eixo, sintese, atencao, onChange, onBlur, readOnly }) {
   const [aberto, setAberto] = useState(true)
   const [saved, setSaved]   = useState(false)
   const temConteudo = sintese || atencao
@@ -57,6 +57,7 @@ function EixoCard({ eixo, sintese, atencao, onChange, onBlur }) {
               className="input resize-none text-sm" rows={4}
               placeholder="O que foi observado neste eixo durante as entrevistas..."
               value={sintese}
+              readOnly={readOnly}
               onChange={e => onChange(eixo.key, 'sintese', e.target.value)}
               onBlur={e => handleBlur('sintese', e.target.value)}
             />
@@ -67,6 +68,7 @@ function EixoCard({ eixo, sintese, atencao, onChange, onBlur }) {
               className="input resize-none text-sm" rows={4}
               placeholder="O que requer cuidado ou intervenção..."
               value={atencao}
+              readOnly={readOnly}
               onChange={e => onChange(eixo.key, 'atencao', e.target.value)}
               onBlur={e => handleBlur('atencao', e.target.value)}
             />
@@ -166,7 +168,7 @@ function EditarEscutaModal({ inicial, onClose, onSalvar }) {
 // ── Página principal ───────────────────────────────────────────────────────
 export default function EscutaPage() {
   const { empresaAtiva } = useEmpresa()
-  const { user } = useAuth()
+  const { user, podeEditar, estaOculto } = useAuth()
 
   const [setores, setSetores]             = useState([])
   const [view, setView]                   = useState('lista')
@@ -322,6 +324,7 @@ export default function EscutaPage() {
   }
 
   // ── Sem empresa ─────────────────────────────────────────────────────────
+  if (estaOculto('escuta_equipe')) return <AcessoNegado />
   if (!empresaAtiva) return (
     <EmptyState icon="🏢" title="Nenhuma empresa selecionada"
       description="Selecione uma empresa no menu superior."
@@ -333,9 +336,11 @@ export default function EscutaPage() {
       <button className="btn-secondary" onClick={() => { setView('lista'); setEscutaAtiva(null) }}>
         Cancelar
       </button>
-      <button className="btn-primary" disabled={saving} onClick={salvar}>
-        {saving ? 'Salvando...' : '💾 Salvar'}
-      </button>
+      {podeEditar('escuta_equipe') && (
+        <button className="btn-primary" disabled={saving} onClick={salvar}>
+          {saving ? 'Salvando...' : '💾 Salvar'}
+        </button>
+      )}
     </div>
   )
 
@@ -351,11 +356,11 @@ export default function EscutaPage() {
             title="Escuta da Equipe"
             eyebrow={empresaAtiva.nome}
             subtitle="Registro das sessões de escuta com colaboradores"
-            action={
+            action={podeEditar('escuta_equipe') ? (
               <button className="btn-primary" onClick={() => setShowModal(true)}>
                 + Nova Escuta
               </button>
-            }
+            ) : null}
           />
 
           {loading && <LoadingSpinner />}
@@ -365,11 +370,11 @@ export default function EscutaPage() {
               icon="🎙️"
               title="Nenhuma escuta registrada"
               description='Clique em "Nova Escuta" para registrar uma sessão de escuta da equipe.'
-              action={
+              action={podeEditar('escuta_equipe') ? (
                 <button className="btn-primary" onClick={() => setShowModal(true)}>
                   + Nova Escuta
                 </button>
-              }
+              ) : null}
             />
           )}
 
@@ -449,10 +454,12 @@ export default function EscutaPage() {
                 style={{ background: '#ddeeff', color: '#3a7bd5' }}>
                 {setorNome(escutaAtiva.setor_id)}
               </span>
-              <button className="btn-edit" title="Editar dados da escuta"
-                onClick={() => setShowEditModal(true)}>
-                ✏️
-              </button>
+              {podeEditar('escuta_equipe') && (
+                <button className="btn-edit" title="Editar dados da escuta"
+                  onClick={() => setShowEditModal(true)}>
+                  ✏️
+                </button>
+              )}
             </div>
           </div>
 
@@ -465,6 +472,7 @@ export default function EscutaPage() {
                   eixo={eixo}
                   sintese={eixos[eixo.key]?.sintese ?? ''}
                   atencao={eixos[eixo.key]?.atencao ?? ''}
+                  readOnly={!podeEditar('escuta_equipe')}
                   onChange={(key, campo, val) =>
                     setEixos(prev => ({ ...prev, [key]: { ...(prev[key] ?? {}), [campo]: val } }))
                   }
@@ -480,6 +488,7 @@ export default function EscutaPage() {
                 <textarea className="input resize-none text-sm" rows={8}
                   placeholder="Síntese consolidada das percepções coletadas..."
                   value={sinteseGeral}
+                  readOnly={!podeEditar('escuta_equipe')}
                   onChange={e => setSinteseGeral(e.target.value)}
                   onBlur={e => salvarCampoEscuta('sintese_geral', e.target.value)} />
               </div>
@@ -491,15 +500,18 @@ export default function EscutaPage() {
                 <textarea className="input resize-none text-sm" rows={8}
                   placeholder="Anotações pessoais, hipóteses, contexto adicional..."
                   value={observacoes}
+                  readOnly={!podeEditar('escuta_equipe')}
                   onChange={e => setObservacoes(e.target.value)}
                   onBlur={e => salvarCampoEscuta('observacoes', e.target.value)} />
               </div>
 
               <div className="flex items-center justify-between pb-2">
-                <button className="btn-danger text-xs"
-                  onClick={() => setConfirmDelete(escutaAtiva)}>
-                  🗑 Excluir esta escuta
-                </button>
+                {podeEditar('escuta_equipe') ? (
+                  <button className="btn-danger text-xs"
+                    onClick={() => setConfirmDelete(escutaAtiva)}>
+                    🗑 Excluir esta escuta
+                  </button>
+                ) : <div />}
                 {botoesAcao}
               </div>
             </div>

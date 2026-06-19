@@ -139,12 +139,13 @@ const STATUS_LEAD = {
 
 const FORM_VAZIO = {
   nome: '', cnpj: '', setor_ramo: '', func_total: '',
-  data_inicio: '', responsavel: '', contato: '', demanda: '',
+  data_inicio: '', responsavel: '', telefone: '', email: '', demanda: '',
   historico: '', turnover: '', atestados: '', rh: '',
   status_lead: 'lead', canal_denuncias: false, consultor_id: '',
 }
 
 const RH_LABELS = { sim: 'RH Estruturado', parcial: 'RH Parcial', nao: 'Sem RH' }
+
 
 // ── Componentes auxiliares ────────────────────────────────────────────────────
 
@@ -252,7 +253,8 @@ function VerModal({ empresa, perfis = [], onClose, onEditar, onAtualizar }) {
           <InfoRow label="Nº de Funcionários" value={empresa.func_total ? `${empresa.func_total} funcionários` : null} />
           <InfoRow label="Data de Início"     value={empresa.data_inicio ? new Date(empresa.data_inicio + 'T00:00:00').toLocaleDateString('pt-BR') : null} />
           <InfoRow label="Responsável"        value={empresa.responsavel} />
-          <InfoRow label="Contato"            value={empresa.contato} />
+          <InfoRow label="Telefone"           value={empresa.telefone} />
+          <InfoRow label="E-mail de Contato"  value={empresa.email} />
           <InfoRow label="Rotatividade"       value={empresa.turnover} />
           <InfoRow label="Atestados/mês"      value={empresa.atestados} />
           <InfoRow label="RH Estruturado"     value={RH_LABELS[empresa.rh]} />
@@ -327,7 +329,8 @@ export default function EmpresasPage() {
       func_total:      e.func_total      ?? '',
       data_inicio:     e.data_inicio     ?? '',
       responsavel:     e.responsavel     ?? '',
-      contato:         e.contato         ?? '',
+      telefone:        e.telefone        ?? '',
+      email:           e.email           ?? '',
       demanda:         e.demanda         ?? '',
       historico:       e.historico       ?? '',
       turnover:        e.turnover        ?? '',
@@ -354,7 +357,8 @@ export default function EmpresasPage() {
       func_total:      parseInt(form.func_total) || 0,
       data_inicio:     form.data_inicio || null,
       responsavel:     form.responsavel,
-      contato:         form.contato,
+      telefone:        form.telefone,
+      email:           form.email,
       demanda:         form.demanda,
       historico:       form.historico,
       turnover:        form.turnover,
@@ -480,10 +484,10 @@ export default function EmpresasPage() {
                   {e.setor_ramo  && <span>{e.setor_ramo}</span>}
                   {e.func_total > 0 && <span>{e.func_total} Funcionários</span>}
                 </div>
-                {(e.responsavel || e.contato) && (
+                {(e.responsavel || e.telefone || e.email) && (
                   <div className="text-xs text-muted mt-0.5">
                     <span className="font-semibold text-navy">Responsável:</span>{' '}
-                    {[e.responsavel, e.contato].filter(Boolean).join(' · ')}
+                    {[e.responsavel, e.telefone, e.email].filter(Boolean).join(' · ')}
                   </div>
                 )}
                 {e.consultor_id && perfis.find(p => p.id === e.consultor_id) && (
@@ -554,8 +558,12 @@ export default function EmpresasPage() {
               <input className="input" placeholder="Nome do responsável" value={form.responsavel} onChange={f('responsavel')} />
             </Campo>
 
-            <Campo label="Contato">
-              <input className="input" placeholder="E-mail ou telefone" value={form.contato} onChange={f('contato')} />
+            <Campo label="Telefone">
+              <input className="input" type="tel" placeholder="(00) 00000-0000" value={form.telefone} onChange={f('telefone')} />
+            </Campo>
+
+            <Campo label="E-mail de Contato">
+              <input className="input" type="email" placeholder="contato@empresa.com" value={form.email} onChange={f('email')} />
             </Campo>
 
             <Campo label="Taxa de Rotatividade">

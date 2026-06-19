@@ -338,14 +338,12 @@ export default function PlanoAcaoPage() {
         title="Plano de Ação"
         eyebrow={empresaAtiva.nome}
         subtitle={nomeSetor}
-        action={
-          {podeEditar('plano_acao') && (
-            <button className="btn-primary"
-              onClick={() => abrirNova(abaAtiva === 'transversal')}>
-              + Nova {abaAtiva === 'transversal' ? 'Ação Transversal' : 'Ação'}
-            </button>
-          )}
-        }
+        action={podeEditar('plano_acao') && (
+          <button className="btn-primary"
+            onClick={() => abrirNova(abaAtiva === 'transversal')}>
+            + Nova {abaAtiva === 'transversal' ? 'Ação Transversal' : 'Ação'}
+          </button>
+        )}
       />
       <SetorSelect setores={setores} setorId={setorId} onChange={setSetorId} />
 

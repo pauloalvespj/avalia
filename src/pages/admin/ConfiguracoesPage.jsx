@@ -3,16 +3,10 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PageHeader, Toast } from '@/components/ui'
 
-const METODOLOGIA_PADRAO = `Este diagnóstico foi elaborado com base no instrumento COPSOQ II (Copenhagen Psychosocial Questionnaire, versão II), adaptado para o contexto brasileiro, em conformidade com os requisitos da NR-01 (Norma Regulamentadora n.º 1 do MTE) sobre gerenciamento de riscos ocupacionais, incluindo os fatores de risco psicossociais.
-
-O instrumento avalia 6 domínios e 28 subescalas em escala Likert de 1 a 5. Os scores são classificados como: Baixo (≤2), Médio (≤3), Alto (≤4) e Crítico (5).`
-
 const VAZIO = {
   nome_consultoria: '', cnpj: '', logo_url: '', slogan: '',
   email_comercial: '', telefone: '', site: '', endereco: '',
   responsavel_nome: '', responsavel_crp: '', responsavel_especializacao: '',
-  nome_sistema: 'Avaliary', cor_primaria: '#3a7bd5',
-  rodape: '', metodologia: METODOLOGIA_PADRAO, assinatura_url: '',
 }
 
 function Secao({ titulo, children }) {
@@ -39,8 +33,7 @@ export default function ConfiguracoesPage() {
   const [loading, setLoading]   = useState(true)
   const [saving, setSaving]     = useState(false)
   const [toast, setToast]       = useState(null)
-  const [uploadingLogo, setUploadingLogo]   = useState(false)
-  const [uploadingAssin, setUploadingAssin] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -181,59 +174,6 @@ export default function ConfiguracoesPage() {
         </div>
       </Secao>
 
-      {/* Personalização */}
-      <Secao titulo="🎨 Personalização do Sistema">
-        <div className="grid grid-cols-2 gap-4">
-          <Campo label="Nome exibido no sistema">
-            <input className="input" value={form.nome_sistema} onChange={set('nome_sistema')}
-              placeholder="PsiAvalia" />
-          </Campo>
-          <Campo label="Cor primária">
-            <div className="flex items-center gap-3">
-              <input type="color" value={form.cor_primaria}
-                onChange={set('cor_primaria')}
-                className="w-12 h-9 rounded border border-border cursor-pointer" />
-              <input className="input" value={form.cor_primaria} onChange={set('cor_primaria')}
-                placeholder="#3a7bd5" />
-            </div>
-          </Campo>
-        </div>
-      </Secao>
-
-      {/* Relatório */}
-      <Secao titulo="📄 Dados do Relatório">
-        <Campo label="Texto de rodapé personalizado">
-          <input className="input" value={form.rodape} onChange={set('rodape')}
-            placeholder="Ex: Documento confidencial — uso exclusivo da empresa contratante" />
-        </Campo>
-        <Campo label="Texto de metodologia">
-          <textarea className="input resize-none" rows={5} value={form.metodologia} onChange={set('metodologia')} />
-        </Campo>
-
-        {/* Assinatura digital */}
-        <div className="flex items-start gap-4">
-          <div>
-            <label className="label">Assinatura digital</label>
-            {form.assinatura_url
-              ? <img src={form.assinatura_url} alt="Assinatura" className="h-14 rounded border border-border object-contain bg-white p-1" />
-              : <div className="h-14 w-40 rounded border-2 border-dashed border-border flex items-center justify-center text-muted text-xs">Sem assinatura</div>
-            }
-          </div>
-          <div className="pt-5">
-            <label className="btn-secondary text-xs cursor-pointer">
-              {uploadingAssin ? 'Enviando…' : 'Escolher arquivo'}
-              <input type="file" accept="image/*" className="hidden"
-                onChange={e => uploadImagem('assinaturas', 'assinatura_url', e.target.files[0], setUploadingAssin)} />
-            </label>
-            {form.assinatura_url && (
-              <button className="ml-2 text-xs text-danger hover:underline"
-                onClick={() => { setForm(p => ({ ...p, assinatura_url: '' })); salvar({ assinatura_url: '' }) }}>
-                Remover
-              </button>
-            )}
-          </div>
-        </div>
-      </Secao>
 
       <div className="flex justify-end">
         <button className="btn-primary px-6" onClick={() => salvar()} disabled={saving}>

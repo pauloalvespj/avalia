@@ -29,6 +29,10 @@ import ConfiguracoesPage       from '@/pages/admin/ConfiguracoesPage'
 import UsuariosPage            from '@/pages/admin/UsuariosPage'
 import PerguntasPage           from '@/pages/admin/PerguntasPage'
 import PerfisAcessoPage        from '@/pages/admin/PerfisAcessoPage'
+import ClimaPesquisaPage      from '@/pages/ClimaPesquisaPage'
+import ClimaPublicaPage       from '@/pages/ClimaPublicaPage'
+import NpsPesquisaPage        from '@/pages/NpsPesquisaPage'
+import NpsPublicaPage         from '@/pages/NpsPublicaPage'
 
 function PrivateRoute({ children }) {
   const { session } = useAuth()
@@ -53,6 +57,8 @@ export default function App() {
       <Route path="/questionario"   element={<QuestionarioPage />} />
       <Route path="/canal"          element={<DenunciaPage />} />
       <Route path="/relatorio-pub"  element={<RelatorioPublicoPage />} />
+      <Route path="/clima-publica"  element={<ClimaPublicaPage />} />
+      <Route path="/nps-publica"    element={<NpsPublicaPage />} />
 
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
@@ -70,6 +76,8 @@ export default function App() {
         <Route path="denuncias"                element={<DenunciasPage />} />
         <Route path="denuncias/:empresaId"    element={<DenunciasEmpresaPage />} />
         <Route path="relatorio"   element={<RelatorioPage />} />
+        <Route path="clima"       element={<ClimaPesquisaPage />} />
+        <Route path="nps"         element={<NpsPesquisaPage />} />
         <Route path="perfil"      element={<PerfilPage />} />
 
         {/* Rotas de administração — só para admins */}

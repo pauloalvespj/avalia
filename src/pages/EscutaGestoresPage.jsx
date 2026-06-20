@@ -137,7 +137,7 @@ export default function EscutaGestoresPage() {
     setLoading(true)
     const { data, error } = await supabase
       .from('nr1_entrevistas_gestores')
-      .select('id, data_entrevista, nome_gestor, cargo, nr1_nr1_entrevistas_gestores_blocos(bloco_num, texto)')
+      .select('id, data_entrevista, nome_gestor, cargo, nr1_entrevistas_gestores_blocos(bloco_num, texto)')
       .eq('empresa_id', empresaAtiva.id)
       .order('data_entrevista', { ascending: false })
     if (error) showToast('Erro ao carregar entrevistas.', 'error')
@@ -171,7 +171,7 @@ export default function EscutaGestoresPage() {
   async function abrirRoteiro(entrevista) {
     setEntrevistaAtiva(entrevista)
     const { data } = await supabase
-      .from('nr1_nr1_entrevistas_gestores_blocos')
+      .from('nr1_entrevistas_gestores_blocos')
       .select('bloco_num, texto')
       .eq('entrevista_id', entrevista.id)
     const mapa = {}
@@ -209,7 +209,7 @@ export default function EscutaGestoresPage() {
       texto:         respostas[b.num] || null,
     }))
     const { error } = await supabase
-      .from('nr1_nr1_entrevistas_gestores_blocos')
+      .from('nr1_entrevistas_gestores_blocos')
       .upsert(payload, { onConflict: 'entrevista_id,bloco_num' })
     if (error) showToast('Erro ao salvar. Tente novamente.', 'error')
     else { showToast('Roteiro salvo!', 'success'); await loadEntrevistas() }
@@ -220,7 +220,7 @@ export default function EscutaGestoresPage() {
   async function salvarBloco(blocoNum, texto) {
     if (!entrevistaAtiva) return
     const { error } = await supabase
-      .from('nr1_nr1_entrevistas_gestores_blocos')
+      .from('nr1_entrevistas_gestores_blocos')
       .upsert(
         { entrevista_id: entrevistaAtiva.id, bloco_num: blocoNum, texto: texto || null },
         { onConflict: 'entrevista_id,bloco_num' }
@@ -301,7 +301,7 @@ export default function EscutaGestoresPage() {
           {!loading && entrevistas.length > 0 && (
             <div className="flex flex-col gap-2">
               {entrevistas.map(e => {
-                const blocos = e.nr1_nr1_entrevistas_gestores_blocos ?? []
+                const blocos = e.nr1_entrevistas_gestores_blocos ?? []
                 const preenchidos = blocos.filter(b => b.texto?.trim()).length
                 const status =
                   preenchidos === 0       ? { label: 'Em branco',     cls: 'badge-gray'   } :

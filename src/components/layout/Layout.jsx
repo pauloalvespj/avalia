@@ -5,11 +5,16 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 const NR1_ITEMS = [
-  { to: '/admin/perguntas', icon: '📝', label: 'Perguntas'                                   },
+  { to: '/admin/perguntas', icon: '📝', label: 'Questionário'                                 },
   { to: '/respostas',       icon: '📋', label: 'Respostas',          modulo: 'respostas'     },
   { to: '/riscos',          icon: '⚠️',  label: 'Riscos',            modulo: 'riscos'        },
   { to: '/escuta-gestores', icon: '🧑‍💼', label: 'Escuta Gestores',  modulo: 'escuta_gestores' },
   { to: '/escuta-equipe',   icon: '🎙️', label: 'Escuta da Equipe',  modulo: 'escuta_equipe' },
+]
+
+const CULTURA_ITEMS = [
+  { to: '/clima', icon: '🌡️', label: 'Pesquisa de Clima', modulo: 'clima' },
+  { to: '/nps',   icon: '⭐', label: 'Pesquisa de NPS',   modulo: 'nps'   },
 ]
 
 const NAV = [
@@ -22,13 +27,14 @@ const NAV = [
   {
     label: 'Avaliação',
     items: [
-      { to: '/setores',     icon: '🏬', label: 'Sobre a Empresa', modulo: 'setores'     },
-      { type: 'group', icon: '🧠', label: 'Módulo NR-1', items: NR1_ITEMS },
-      { to: '/diagnostico', icon: '🔬', label: 'Diagnóstico',     modulo: 'diagnostico' },
-      { to: '/plano-acao',  icon: '🎯', label: 'Plano de Ação',   modulo: 'plano_acao'  },
-      { to: '/okrs',        icon: '📈', label: 'OKRs e KPIs',     modulo: 'okrs'        },
-      { to: '/checklist',   icon: '✅', label: 'Checklist',       modulo: 'checklist'   },
-      { to: '/relatorio',   icon: '📄', label: 'Relatório',       modulo: 'relatorio'   },
+      { to: '/setores',     icon: '🏬', label: 'Sobre a Empresa',       modulo: 'setores'     },
+      { type: 'group', icon: '🧠', label: 'NR1',                    items: NR1_ITEMS      },
+      { type: 'group', icon: '🎭', label: 'Cultura Organizacional',  items: CULTURA_ITEMS  },
+      { to: '/diagnostico', icon: '🔬', label: 'Diagnóstico',           modulo: 'diagnostico' },
+      { to: '/plano-acao',  icon: '🎯', label: 'Plano de Ação',         modulo: 'plano_acao'  },
+      { to: '/okrs',        icon: '📈', label: 'OKRs e KPIs',           modulo: 'okrs'        },
+      { to: '/checklist',   icon: '✅', label: 'Checklist',             modulo: 'checklist'   },
+      { to: '/relatorio',   icon: '📄', label: 'Relatório',             modulo: 'relatorio'   },
     ],
   },
 ]
@@ -304,7 +310,8 @@ export default function Layout() {
               </div>
             ))}
 
-            {/* Administração */}
+
+{/* Administração */}
             <div>
               <div className="px-4 pt-3 pb-1 text-2xs font-bold uppercase tracking-widest"
                 style={{ color: 'rgba(255,255,255,0.35)' }}>

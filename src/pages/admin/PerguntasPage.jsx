@@ -256,6 +256,16 @@ export default function PerguntasPage() {
         }
       />
 
+      <div className="card border-l-4 border-primary">
+        <p className="text-sm text-muted leading-relaxed">
+          O <strong className="text-navy">COPSOQ II (Copenhagen Psychosocial Questionnaire II)</strong> é um instrumento
+          validado internacionalmente para avaliação de riscos psicossociais no trabalho, em conformidade com a NR-1.
+          Estruturado em 8 domínios e 29 subescalas, identifica fatores de risco relacionados à organização do trabalho,
+          relações sociais, liderança, saúde e bem-estar dos colaboradores. Os enunciados das perguntas podem ser
+          personalizados para refletir melhor a realidade de cada empresa, sem alterar a metodologia de cálculo.
+        </p>
+      </div>
+
       <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
         <strong>Atenção:</strong> Alterações aqui valem para o questionário enviado a <strong>todos os colaboradores</strong> desta consultoria.
         Subfatores (sf) e escala de valores (1–5) são fixos.

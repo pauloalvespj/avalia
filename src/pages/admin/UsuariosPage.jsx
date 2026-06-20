@@ -36,8 +36,10 @@ const MODULOS = [
   { key: 'relatorio',    label: 'Relatório' },
   { key: 'denuncias',    label: 'Denúncias' },
   { key: 'agendamentos',    label: 'Agendamentos' },
-  { key: 'escuta_equipe',  label: 'Escuta da Equipe' },
+  { key: 'escuta_equipe',   label: 'Escuta da Equipe' },
   { key: 'escuta_gestores', label: 'Escuta Gestores/RH' },
+  { key: 'clima',           label: 'Pesquisa de Clima' },
+  { key: 'nps',             label: 'Pesquisa de NPS' },
 ]
 
 const NIVEL_LABEL = { oculto: 'Oculto', ver: 'Somente ver', editar: 'Editar' }

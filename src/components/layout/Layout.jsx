@@ -1,8 +1,16 @@
-import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useEmpresa } from '@/hooks/useEmpresa'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+
+const NR1_ITEMS = [
+  { to: '/admin/perguntas', icon: '📝', label: 'Perguntas'                                   },
+  { to: '/respostas',       icon: '📋', label: 'Respostas',          modulo: 'respostas'     },
+  { to: '/riscos',          icon: '⚠️',  label: 'Riscos',            modulo: 'riscos'        },
+  { to: '/escuta-gestores', icon: '🧑‍💼', label: 'Escuta Gestores',  modulo: 'escuta_gestores' },
+  { to: '/escuta-equipe',   icon: '🎙️', label: 'Escuta da Equipe',  modulo: 'escuta_equipe' },
+]
 
 const NAV = [
   {
@@ -14,17 +22,13 @@ const NAV = [
   {
     label: 'Avaliação',
     items: [
-      { to: '/setores',         icon: '🏬', label: 'Sobre a Empresa',      modulo: 'setores'     },
-      { to: '/admin/perguntas', icon: '📝', label: 'Perguntas'                                   },
-      { to: '/respostas',       icon: '📋', label: 'Respostas',            modulo: 'respostas'   },
-      { to: '/riscos',          icon: '⚠️',  label: 'Riscos',              modulo: 'riscos'      },
-      { to: '/escuta-gestores', icon: '🧑‍💼', label: 'Escuta Gestores/RH', modulo: 'escuta_gestores' },
-      { to: '/escuta-equipe',   icon: '🎙️', label: 'Escuta da Equipe',    modulo: 'escuta_equipe'   },
-      { to: '/diagnostico',     icon: '🔬', label: 'Diagnóstico',          modulo: 'diagnostico' },
-      { to: '/plano-acao',      icon: '🎯', label: 'Plano de Ação',        modulo: 'plano_acao'  },
-      { to: '/okrs',            icon: '📈', label: 'OKRs e KPIs',          modulo: 'okrs'        },
-      { to: '/checklist',       icon: '✅', label: 'Checklist',            modulo: 'checklist'   },
-      { to: '/relatorio',       icon: '📄', label: 'Relatório',            modulo: 'relatorio'   },
+      { to: '/setores',     icon: '🏬', label: 'Sobre a Empresa', modulo: 'setores'     },
+      { type: 'group', icon: '🧠', label: 'Módulo NR-1', items: NR1_ITEMS },
+      { to: '/diagnostico', icon: '🔬', label: 'Diagnóstico',     modulo: 'diagnostico' },
+      { to: '/plano-acao',  icon: '🎯', label: 'Plano de Ação',   modulo: 'plano_acao'  },
+      { to: '/okrs',        icon: '📈', label: 'OKRs e KPIs',     modulo: 'okrs'        },
+      { to: '/checklist',   icon: '✅', label: 'Checklist',       modulo: 'checklist'   },
+      { to: '/relatorio',   icon: '📄', label: 'Relatório',       modulo: 'relatorio'   },
     ],
   },
 ]
@@ -104,6 +108,48 @@ function NavItem({ item, onClick }) {
       <span className="w-[18px] text-center text-base">{item.icon}</span>
       <span>{item.label}</span>
     </NavLink>
+  )
+}
+
+function NavSubGroup({ group, onClick, estaOculto }) {
+  const location = useLocation()
+  const anyActive = group.items.some(i => location.pathname === i.to || location.pathname.startsWith(i.to + '/'))
+  const [open, setOpen] = useState(() => anyActive)
+
+  useEffect(() => { if (anyActive) setOpen(true) }, [anyActive])
+
+  const visibleItems = group.items.filter(i => !i.modulo || !estaOculto(i.modulo))
+  if (!visibleItems.length) return null
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors border-l-[3px]
+          ${anyActive ? 'border-[#5a96e8] text-white' : 'border-transparent text-white/70 hover:text-white hover:bg-white/5'}`}
+        style={anyActive ? { background: 'rgba(58,123,213,0.12)' } : undefined}
+      >
+        <span className="w-[18px] text-center text-base">{group.icon}</span>
+        <span className="flex-1 text-left">{group.label}</span>
+        <span className="text-white/50 text-base select-none" style={{ transition: 'transform 0.2s', display:'inline-block', transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>▸</span>
+      </button>
+      {open && (
+        <div style={{ background: 'rgba(0,0,0,0.12)' }}>
+          {visibleItems.map(item => (
+            <NavLink key={item.to} to={item.to} onClick={onClick}
+              className={({ isActive }) =>
+                `flex items-center gap-2.5 pl-9 pr-4 py-2 text-[13px] transition-colors border-l-[3px]
+                 ${isActive ? 'border-[#5a96e8] text-white' : 'border-transparent text-white/55 hover:text-white hover:bg-white/5'}`
+              }
+              style={({ isActive }) => isActive ? { background: 'rgba(58,123,213,0.18)' } : undefined}
+            >
+              <span className="w-[16px] text-center text-sm">{item.icon}</span>
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -248,11 +294,13 @@ export default function Layout() {
                   style={{ color: 'rgba(255,255,255,0.35)' }}>
                   {group.label}
                 </div>
-                {group.items
-                  .filter(item => !item.modulo || !estaOculto(item.modulo))
-                  .map(item => (
-                    <NavItem key={item.to} item={item} onClick={() => setSidebarOpen(false)} />
-                  ))}
+                {group.items.map(item => {
+                  if (item.type === 'group') {
+                    return <NavSubGroup key={item.label} group={item} onClick={() => setSidebarOpen(false)} estaOculto={estaOculto} />
+                  }
+                  if (item.modulo && estaOculto(item.modulo)) return null
+                  return <NavItem key={item.to} item={item} onClick={() => setSidebarOpen(false)} />
+                })}
               </div>
             ))}
 

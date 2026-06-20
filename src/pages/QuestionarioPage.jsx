@@ -43,7 +43,7 @@ export default function QuestionarioPage() {
       // Carrega personalizações de texto do consultor dono da empresa
       if (emp.consultor_id) {
         const { data: custom } = await supabase
-          .from('perguntas_customizadas')
+          .from('nr1_perguntas')
           .select('perguntas')
           .eq('consultor_id', emp.consultor_id)
           .maybeSingle()
@@ -83,7 +83,7 @@ export default function QuestionarioPage() {
 
   async function enviar() {
     setEnviando(true)
-    const { error } = await supabase.from('respostas_publicas').insert({
+    const { error } = await supabase.from('nr1_respostas').insert({
       empresa_id: empresaId || null,
       setor_id:   setorEscolhido?.id || null,
       respostas,

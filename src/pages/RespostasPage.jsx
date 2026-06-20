@@ -209,7 +209,7 @@ export default function RespostasPage() {
     if (!empresaAtiva) return
     setLoading(true)
     let query = supabase
-      .from('respostas_publicas')
+      .from('nr1_respostas')
       .select('id, setor_id, respostas, created_at')
       .order('created_at', { ascending: false })
 
@@ -236,7 +236,7 @@ export default function RespostasPage() {
     const channel = supabase
       .channel(`respostas-empresa-${empresaAtiva.id}`)
       .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'respostas_publicas' },
+        { event: '*', schema: 'public', table: 'nr1_respostas' },
         () => load()
       )
       .subscribe()
@@ -244,7 +244,7 @@ export default function RespostasPage() {
   }, [empresaAtiva, load])
 
   async function handleDelete(id) {
-    const { error } = await supabase.from('respostas_publicas').delete().eq('id', id)
+    const { error } = await supabase.from('nr1_respostas').delete().eq('id', id)
     if (error) { setToast({ message: 'Erro ao remover: ' + error.message, type: 'error' }); return }
     setToast({ message: 'Resposta removida.', type: 'info' })
     load()
@@ -303,7 +303,7 @@ export default function RespostasPage() {
     const upserts = resultados.map(r => ({ ...r, setor_id: setorFiltro }))
 
     const { error } = await supabase
-      .from('riscos')
+      .from('nr1_riscos')
       .upsert(upserts, { onConflict: 'setor_id,fator' })
 
     setCalculando(false)

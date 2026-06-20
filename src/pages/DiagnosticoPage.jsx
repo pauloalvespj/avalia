@@ -153,8 +153,8 @@ export default function DiagnosticoPage() {
     setLoading(true)
 
     const [{ data: respostasData }, { data: customData }, { data: diagData }] = await Promise.all([
-      supabase.from('respostas_publicas').select('respostas').eq('setor_id', setorId),
-      supabase.from('perguntas_customizadas').select('perguntas')
+      supabase.from('nr1_respostas').select('respostas').eq('setor_id', setorId),
+      supabase.from('nr1_perguntas').select('perguntas')
         .eq('consultor_id', empresaAtiva.consultor_id).maybeSingle(),
       supabase.from('diagnosticos').select('riscos_txt, protetores, recomendacoes, conclusao')
         .eq('setor_id', setorId).maybeSingle(),

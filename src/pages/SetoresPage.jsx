@@ -133,10 +133,10 @@ export default function SetoresPage() {
       { count: totalDiag },
     ] = await Promise.all([
       setorIds.length
-        ? supabase.from('respostas_publicas').select('id', { count: 'exact', head: true }).in('setor_id', setorIds)
+        ? supabase.from('nr1_respostas').select('id', { count: 'exact', head: true }).in('setor_id', setorIds)
         : { count: 0 },
       setorIds.length
-        ? supabase.from('riscos').select('fator, score, setor_id').in('setor_id', setorIds)
+        ? supabase.from('nr1_riscos').select('fator, score, setor_id').in('setor_id', setorIds)
         : { data: [] },
       supabase.from('checklist_itens').select('id, texto, concluido, ordem').eq('empresa_id', empresaAtiva.id).order('ordem'),
       setorIds.length

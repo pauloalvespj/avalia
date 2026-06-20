@@ -56,8 +56,8 @@ export default function DashboardPage() {
     ] = await Promise.all([
       supabase.from('empresas').select('id, nome, setor_ramo, func_total').order('nome'),
       supabase.from('setores').select('id, empresa_id'),
-      supabase.from('respostas_publicas').select('id, setor_id'),
-      supabase.from('riscos').select('setor_id, score'),
+      supabase.from('nr1_respostas').select('id, setor_id'),
+      supabase.from('nr1_riscos').select('setor_id, score'),
       supabase.from('acoes').select('id, status, setor_id'),
       supabase.from('denuncias').select('id, empresa_id, status'),
     ])

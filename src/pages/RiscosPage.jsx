@@ -10,10 +10,11 @@ const DOMINIOS = [
   { id:'D1', nome:'Exigência Laboral',            cor:'#c94040', sfs:['sf1','sf2','sf3','sf4'] },
   { id:'D2', nome:'Organização do Trabalho',      cor:'#d08030', sfs:['sf5','sf6','sf7','sf8'] },
   { id:'D3', nome:'Relações Sociais e Liderança', cor:'#2d8a5e', sfs:['sf9','sf10','sf11','sf12'] },
-  { id:'D4', nome:'Personalidade / Valores',      cor:'#3a7bd5', sfs:['sf13','sf14','sf15'] },
-  { id:'D5', nome:'Interface Indivíduo-Trabalho', cor:'#0891b2', sfs:['sf16','sf17','sf18','sf19'] },
-  { id:'D6', nome:'Saúde e Bem-Estar',            cor:'#7a4db0', sfs:['sf20','sf21','sf22','sf23','sf24','sf25'] },
-  { id:'D7', nome:'Comportamentos Ofensivos',     cor:'#8a1a1a', sfs:['sf26','sf27','sf28'] },
+  { id:'D4', nome:'Valores',                      cor:'#3a7bd5', sfs:['sf13','sf14'] },
+  { id:'D5', nome:'Personalidade',                cor:'#6366f1', sfs:['sf14p','sf15'] },
+  { id:'D6', nome:'Interface Indivíduo-Trabalho', cor:'#0891b2', sfs:['sf16','sf17','sf18','sf19'] },
+  { id:'D7', nome:'Saúde e Bem-Estar',            cor:'#7a4db0', sfs:['sf20','sf21','sf22','sf23','sf24','sf25'] },
+  { id:'D8', nome:'Comportamentos Ofensivos',     cor:'#8a1a1a', sfs:['sf26','sf27','sf28'] },
 ]
 
 const NIVEL_STYLE = {
@@ -24,7 +25,7 @@ const NIVEL_STYLE = {
 }
 
 const DOMINIO_PREFIXO = {
-  D1:'EL', D2:'OT', D3:'RS', D4:'PE', D5:'IT', D6:'SB', D7:'CO',
+  D1:'EL', D2:'OT', D3:'RS', D4:'VA', D5:'PE', D6:'IT', D7:'SB', D8:'CO',
 }
 
 function codigoPergunta(dominioId, p) {
@@ -316,8 +317,8 @@ export default function RiscosPage() {
 
     // Busca respostas e customizações do consultor em paralelo
     const [{ data: respostasData }, { data: customData }] = await Promise.all([
-      supabase.from('respostas_publicas').select('setor_id, respostas').in('setor_id', ids),
-      supabase.from('perguntas_customizadas')
+      supabase.from('nr1_respostas').select('setor_id, respostas').in('setor_id', ids),
+      supabase.from('nr1_perguntas')
         .select('perguntas')
         .eq('consultor_id', empresaAtiva.consultor_id)
         .maybeSingle(),

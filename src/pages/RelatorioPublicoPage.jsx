@@ -130,7 +130,7 @@ export default function RelatorioPublicoPage() {
         { data: escutaData },
       ] = await Promise.all([
         setorIds.length
-          ? supabase.from('riscos').select('fator,score,nivel,evidencias,setor_id').in('setor_id', setorIds)
+          ? supabase.from('nr1_riscos').select('fator,score,nivel,evidencias,setor_id').in('setor_id', setorIds)
           : Promise.resolve({ data: [] }),
         setorIds.length
           ? supabase.from('diagnosticos').select('*').in('setor_id', setorIds)

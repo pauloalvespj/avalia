@@ -198,8 +198,8 @@ export default function EscutaPage() {
     setLoading(true)
     const ids = lista.map(s => s.id)
     const { data, error } = await supabase
-      .from('escutas_equipe')
-      .select('id, data_entrevista, num_participantes, setor_id, escutas_equipe_eixos(eixo_key, sintese, atencao)')
+      .from('nr1_escutas_equipe')
+      .select('id, data_entrevista, num_participantes, setor_id, nr1_nr1_escutas_equipe_eixos(eixo_key, sintese, atencao)')
       .in('setor_id', ids)
       .order('data_entrevista', { ascending: false })
     if (error) showToast('Erro ao carregar escutas.', 'error')
@@ -212,7 +212,7 @@ export default function EscutaPage() {
   // ── Cria nova sessão ────────────────────────────────────────────────────
   async function criarEscuta(form) {
     const { data, error } = await supabase
-      .from('escutas_equipe')
+      .from('nr1_escutas_equipe')
       .insert({
         setor_id:          form.setor_id,
         consultor_id:      user.id,
@@ -231,8 +231,8 @@ export default function EscutaPage() {
   async function abrirEscuta(escuta) {
     setEscutaAtiva(escuta)
     const [{ data: eixosData }, { data: escutaData }] = await Promise.all([
-      supabase.from('escutas_equipe_eixos').select('eixo_key, sintese, atencao').eq('escuta_id', escuta.id),
-      supabase.from('escutas_equipe').select('sintese_geral, observacoes').eq('id', escuta.id).single(),
+      supabase.from('nr1_nr1_escutas_equipe_eixos').select('eixo_key, sintese, atencao').eq('escuta_id', escuta.id),
+      supabase.from('nr1_escutas_equipe').select('sintese_geral, observacoes').eq('id', escuta.id).single(),
     ])
     const mapa = {}
     ;(eixosData ?? []).forEach(r => {
@@ -247,7 +247,7 @@ export default function EscutaPage() {
   // ── Edita metadados ─────────────────────────────────────────────────────
   async function editarEscuta(form) {
     const { data, error } = await supabase
-      .from('escutas_equipe')
+      .from('nr1_escutas_equipe')
       .update({
         data_entrevista:   form.data_entrevista || null,
         num_participantes: parseInt(form.num_participantes) || null,
@@ -268,7 +268,7 @@ export default function EscutaPage() {
     const atual = eixos[eixoKey] ?? { sintese: '', atencao: '' }
     const payload = { ...atual, [campo]: novoValor }
     const { error } = await supabase
-      .from('escutas_equipe_eixos')
+      .from('nr1_nr1_escutas_equipe_eixos')
       .upsert(
         { escuta_id: escutaAtiva.id, eixo_key: eixoKey, sintese: payload.sintese || null, atencao: payload.atencao || null },
         { onConflict: 'escuta_id,eixo_key' }
@@ -279,7 +279,7 @@ export default function EscutaPage() {
   // ── Auto-save blur de campo da escuta ───────────────────────────────────
   async function salvarCampoEscuta(campo, valor) {
     if (!escutaAtiva) return
-    await supabase.from('escutas_equipe').update({ [campo]: valor || null }).eq('id', escutaAtiva.id)
+    await supabase.from('nr1_escutas_equipe').update({ [campo]: valor || null }).eq('id', escutaAtiva.id)
   }
 
   // ── Salva tudo ──────────────────────────────────────────────────────────
@@ -293,8 +293,8 @@ export default function EscutaPage() {
       atencao:   eixos[e.key]?.atencao || null,
     }))
     await Promise.all([
-      supabase.from('escutas_equipe_eixos').upsert(eixosPayload, { onConflict: 'escuta_id,eixo_key' }),
-      supabase.from('escutas_equipe').update({ sintese_geral: sinteseGeral || null, observacoes: observacoes || null }).eq('id', escutaAtiva.id),
+      supabase.from('nr1_nr1_escutas_equipe_eixos').upsert(eixosPayload, { onConflict: 'escuta_id,eixo_key' }),
+      supabase.from('nr1_escutas_equipe').update({ sintese_geral: sinteseGeral || null, observacoes: observacoes || null }).eq('id', escutaAtiva.id),
     ])
     showToast('Escuta salva!', 'success')
     await loadEscutas()
@@ -303,7 +303,7 @@ export default function EscutaPage() {
 
   // ── Exclui sessão ───────────────────────────────────────────────────────
   async function deletarEscuta(escuta) {
-    const { error } = await supabase.from('escutas_equipe').delete().eq('id', escuta.id)
+    const { error } = await supabase.from('nr1_escutas_equipe').delete().eq('id', escuta.id)
     if (error) { showToast('Erro ao excluir.', 'error'); return }
     showToast('Escuta excluída.', 'success')
     setView('lista')
@@ -381,7 +381,7 @@ export default function EscutaPage() {
           {!loading && escutas.length > 0 && (
             <div className="flex flex-col gap-2">
               {escutas.map(e => {
-                const arr = e.escutas_equipe_eixos ?? []
+                const arr = e.nr1_nr1_escutas_equipe_eixos ?? []
                 const preenchidos = arr.filter(x => x.sintese?.trim() || x.atencao?.trim()).length
                 const status =
                   preenchidos === 0 ? { label: 'Em branco',             cls: 'badge-gray'   } :

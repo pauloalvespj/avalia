@@ -7,21 +7,23 @@ import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
 const DOMINIOS = [
-  { id:'D1', nome:'Exigências do Trabalho',      cor:'#c94040', sfs:['sf1','sf2','sf3','sf4'] },
-  { id:'D2', nome:'Organização e Conteúdo',       cor:'#d08030', sfs:['sf5','sf6','sf7','sf8'] },
-  { id:'D3', nome:'Relações Sociais e Liderança', cor:'#2d8a5e', sfs:['sf9','sf10','sf11','sf12','sf13','sf14'] },
-  { id:'D4', nome:'Valores no Trabalho',          cor:'#3a7bd5', sfs:['sf15','sf16','sf17','sf18'] },
-  { id:'D5', nome:'Saúde e Bem-Estar',            cor:'#7a4db0', sfs:['sf19','sf20','sf21','sf22','sf23','sf24','sf25'] },
-  { id:'D6', nome:'Comportamentos Ofensivos',     cor:'#8a1a1a', sfs:['sf26','sf27','sf28'] },
+  { id:'D1', nome:'Exigência Laboral',            cor:'#c94040', sfs:['sf1','sf2','sf3','sf4'] },
+  { id:'D2', nome:'Organização do Trabalho',      cor:'#d08030', sfs:['sf5','sf6','sf7','sf8'] },
+  { id:'D3', nome:'Relações Sociais e Liderança', cor:'#2d8a5e', sfs:['sf9','sf10','sf11','sf12'] },
+  { id:'D4', nome:'Valores',                      cor:'#3a7bd5', sfs:['sf13','sf14'] },
+  { id:'D5', nome:'Personalidade',                cor:'#6366f1', sfs:['sf14p','sf15'] },
+  { id:'D6', nome:'Interface Indivíduo-Trabalho', cor:'#0891b2', sfs:['sf16','sf17','sf18','sf19'] },
+  { id:'D7', nome:'Saúde e Bem-Estar',            cor:'#7a4db0', sfs:['sf20','sf21','sf22','sf23','sf24','sf25'] },
+  { id:'D8', nome:'Comportamentos Ofensivos',     cor:'#8a1a1a', sfs:['sf26','sf27','sf28'] },
 ]
 
 const SF_NOME = {
   sf1:'Exigências quantitativas',sf2:'Ritmo de trabalho',sf3:'Exigências cognitivas',sf4:'Exigências emocionais',
   sf5:'Influência no trabalho',sf6:'Possibilidades de desenvolvimento',sf7:'Previsibilidade',sf8:'Transparência do papel laboral',
   sf9:'Recompensas',sf10:'Apoio social de superiores',sf11:'Comunidade social no trabalho',sf12:'Qualidade da liderança',
-  sf13:'Confiança vertical',sf14:'Justiça e respeito',sf15:'Auto-eficácia',sf16:'Significado do trabalho',
-  sf17:'Compromisso',sf18:'Satisfação no trabalho',sf19:'Insegurança laboral',sf20:'Saúde geral',
-  sf21:'Conflito trabalho/família',sf22:'Problemas em dormir',sf23:'Burnout',sf24:'Stress',sf25:'Sintomas depressivos',
+  sf13:'Confiança vertical',sf14:'Justiça e respeito',sf14p:'Equidade na distribuição',sf15:'Auto-eficácia',
+  sf16:'Significado do trabalho',sf17:'Compromisso',sf18:'Satisfação no trabalho',sf19:'Insegurança laboral',
+  sf20:'Saúde geral',sf21:'Conflito trabalho/família',sf22:'Problemas em dormir',sf23:'Burnout',sf24:'Stress',sf25:'Sintomas depressivos',
   sf26:'Insultos e provocações verbais',sf27:'Assédio sexual',sf28:'Ameaças e violência física',
 }
 
@@ -34,7 +36,7 @@ const NIVEL_STYLE = {
 
 const RH_LABEL = { sim:'Sim', parcial:'Parcialmente', nao:'Não' }
 const STATUS_LABEL = { pendente:'Pendente', em_andamento:'Em andamento', concluida:'Concluída' }
-const METODOLOGIA_PADRAO = `Este diagnóstico foi elaborado com base no instrumento COPSOQ II (Copenhagen Psychosocial Questionnaire, versão II), adaptado para o contexto brasileiro, em conformidade com os requisitos da NR-01 sobre gerenciamento de riscos ocupacionais, incluindo os fatores de risco psicossociais. O instrumento avalia 7 domínios e 28 subescalas em escala Likert de 1 a 5. Os scores são classificados como: Baixo (0–24%), Moderado (25–49%), Alto (50–74%) e Crítico (75–100%), calculados pela fórmula risco% = (score − 1) / 4 × 100.`
+const METODOLOGIA_PADRAO = `Este diagnóstico foi elaborado com base no instrumento COPSOQ II (Copenhagen Psychosocial Questionnaire, versão II), adaptado para o contexto brasileiro, em conformidade com os requisitos da NR-01 sobre gerenciamento de riscos ocupacionais, incluindo os fatores de risco psicossociais. O instrumento avalia 8 domínios e 29 subescalas em escala Likert de 1 a 5. Os scores são classificados como: Baixo (0–24%), Moderado (25–49%), Alto (50–74%) e Crítico (75–100%), calculados pela fórmula risco% = (score − 1) / 4 × 100.`
 
 function mediaDominio(sfMap, sfs) {
   const vals = sfs.map(sf => sfMap[sf]).filter(v => v != null)
@@ -170,7 +172,7 @@ export default function RelatorioPage() {
       { data: escutaData },
     ] = await Promise.all([
       setorIds.length
-        ? supabase.from('riscos').select('fator,score,nivel,evidencias,setor_id').in('setor_id', setorIds)
+        ? supabase.from('nr1_riscos').select('fator,score,nivel,evidencias,setor_id').in('setor_id', setorIds)
         : { data: [] },
       setorIds.length
         ? supabase.from('diagnosticos').select('*').in('setor_id', setorIds)
@@ -332,7 +334,7 @@ export default function RelatorioPage() {
                 { key: 'perfil',      label: 'Perfil da Empresa' },
                 { key: 'metodologia', label: 'Metodologia' },
                 { key: 'escuta',      label: 'Escuta da Equipe' },
-                { key: 'riscos',      label: 'Avaliação de Riscos' },
+                { key: 'nr1_riscos',      label: 'Avaliação de Riscos' },
                 { key: 'riscosAltos', label: 'Riscos Altos/Críticos' },
                 { key: 'diagnostico', label: 'Diagnóstico' },
                 { key: 'plano',       label: 'Plano de Ação' },

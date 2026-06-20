@@ -5,7 +5,7 @@ import { useEmpresa } from '@/hooks/useEmpresa'
 import { PERGUNTAS } from '@/lib/perguntas'
 import { PageHeader, Toast, ConfirmModal } from '@/components/ui'
 
-const BLOCO_PREFIXO = { 1:'EL', 2:'OT', 3:'RS', 4:'PE', 5:'IT', 6:'SB', 7:'CO' }
+const BLOCO_PREFIXO = { 1:'EL', 2:'OT', 3:'RS', 4:'VA', 5:'PE', 6:'IT', 7:'SB', 8:'CO' }
 
 function codigoPergunta(p) {
   const num = parseInt(p.id.replace('q', ''), 10)
@@ -158,7 +158,7 @@ export default function PerguntasPage() {
 
   const load = useCallback(async () => {
     const { data } = await supabase
-      .from('perguntas_customizadas')
+      .from('nr1_perguntas')
       .select('perguntas')
       .eq('consultor_id', user.id)
       .maybeSingle()
@@ -194,7 +194,7 @@ export default function PerguntasPage() {
   async function salvarBloco(bloco) {
     setSaving(true)
     const { error } = await supabase
-      .from('perguntas_customizadas')
+      .from('nr1_perguntas')
       .upsert({ consultor_id: user.id, perguntas }, { onConflict: 'consultor_id' })
     setSaving(false)
     if (error) setToast({ message: 'Erro: ' + error.message, type: 'error' })
@@ -219,7 +219,7 @@ export default function PerguntasPage() {
   async function restaurarTudo() {
     setSaving(true)
     const { error } = await supabase
-      .from('perguntas_customizadas')
+      .from('nr1_perguntas')
       .delete()
       .eq('consultor_id', user.id)
     setSaving(false)

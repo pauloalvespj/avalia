@@ -5,17 +5,23 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 const NR1_ITEMS = [
-  { to: '/admin/perguntas', icon: '📝', label: 'Questionário'                                 },
-  { to: '/respostas',       icon: '📋', label: 'Respostas',          modulo: 'respostas'     },
-  { to: '/riscos',          icon: '⚠️',  label: 'Riscos',            modulo: 'riscos'        },
-  { to: '/escuta-gestores', icon: '🧑‍💼', label: 'Escuta Gestores',  modulo: 'escuta_gestores' },
-  { to: '/escuta-equipe',   icon: '🎙️', label: 'Escuta da Equipe',  modulo: 'escuta_equipe' },
+  { to: '/respostas',     icon: '📋', label: 'Respostas',           modulo: 'respostas'     },
+  { to: '/riscos',        icon: '⚠️',  label: 'Avaliação de Riscos', modulo: 'riscos'        },
+  { to: '/escuta-equipe', icon: '🎙️', label: 'Escuta da Equipe',   modulo: 'escuta_equipe' },
 ]
 
 const CULTURA_ITEMS = [
   { to: '/clima', icon: '🌡️', label: 'Pesquisa de Clima', modulo: 'clima' },
-  { to: '/nps',   icon: '⭐', label: 'Pesquisa de NPS',   modulo: 'nps'   },
+  { to: '/nps',   icon: '⭐',  label: 'Pesquisa de NPS',   modulo: 'nps'   },
 ]
+
+const ADMIN_ITEMS = [
+  { to: '/empresas',            icon: '🏢', label: 'Empresas'      },
+  { to: '/admin/configuracoes', icon: '⚙️', label: 'Configurações' },
+  { to: '/admin/usuarios',      icon: '👥', label: 'Usuários'      },
+]
+
+const ADMIN_GROUP = { icon: '🔧', label: 'Administração', items: ADMIN_ITEMS }
 
 const NAV = [
   {
@@ -27,22 +33,28 @@ const NAV = [
   {
     label: 'Avaliação',
     items: [
-      { to: '/setores',     icon: '🏬', label: 'Sobre a Empresa',       modulo: 'setores'     },
-      { type: 'group', icon: '🧠', label: 'NR1',                    items: NR1_ITEMS      },
-      { type: 'group', icon: '🎭', label: 'Cultura Organizacional',  items: CULTURA_ITEMS  },
-      { to: '/diagnostico', icon: '🔬', label: 'Diagnóstico',           modulo: 'diagnostico' },
-      { to: '/plano-acao',  icon: '🎯', label: 'Plano de Ação',         modulo: 'plano_acao'  },
-      { to: '/okrs',        icon: '📈', label: 'OKRs e KPIs',           modulo: 'okrs'        },
-      { to: '/checklist',   icon: '✅', label: 'Checklist',             modulo: 'checklist'   },
-      { to: '/relatorio',   icon: '📄', label: 'Relatório',             modulo: 'relatorio'   },
+      { to: '/setores', icon: '🏢', label: 'Sobre a Empresa',      modulo: 'setores'    },
+      { type: 'group', icon: '📋', label: 'NR1',                   items: NR1_ITEMS     },
+      { type: 'group', icon: '🌱', label: 'Cultura Organizacional', items: CULTURA_ITEMS },
     ],
   },
-]
-
-const NAV_ADMIN = [
-  { to: '/empresas',            icon: '🏢', label: 'Empresas'      },
-  { to: '/admin/configuracoes', icon: '⚙️', label: 'Configurações' },
-  { to: '/admin/usuarios',      icon: '👥', label: 'Usuários'      },
+  {
+    label: 'Resultados',
+    items: [
+      { to: '/diagnostico', icon: '🔬', label: 'Diagnóstico',   modulo: 'diagnostico' },
+      { to: '/plano-acao',  icon: '🎯', label: 'Plano de Ação', modulo: 'plano_acao'  },
+      { to: '/okrs',        icon: '📈', label: 'OKRs e KPIs',   modulo: 'okrs'        },
+      { to: '/checklist',   icon: '✅', label: 'Checklist',     modulo: 'checklist'   },
+      { to: '/relatorio',   icon: '📄', label: 'Relatório',     modulo: 'relatorio'   },
+    ],
+  },
+  {
+    label: 'Extras',
+    items: [
+      { to: '/agendamentos', icon: '📅', label: 'Agendamentos',      modulo: 'agendamentos' },
+      { to: '/denuncias',    icon: '📢', label: 'Canal de Denúncias', modulo: 'denuncias'    },
+    ],
+  },
 ]
 
 // Pill dropdown — só empresa agora
@@ -310,24 +322,11 @@ export default function Layout() {
               </div>
             ))}
 
-
-{/* Administração */}
-            <div>
-              <div className="px-4 pt-3 pb-1 text-2xs font-bold uppercase tracking-widest"
-                style={{ color: 'rgba(255,255,255,0.35)' }}>
-                Administração
+            {(isAdmin || !perfil) && (
+              <div className="mt-1 border-t border-white/10 pt-1">
+                <NavSubGroup group={ADMIN_GROUP} onClick={() => setSidebarOpen(false)} estaOculto={() => false} />
               </div>
-              {!estaOculto('agendamentos') && (
-                <NavItem item={{ to: '/agendamentos', icon: '📅', label: 'Agendamentos', modulo: 'agendamentos' }} onClick={() => setSidebarOpen(false)} />
-              )}
-              {!estaOculto('denuncias') && (
-                <NavItem item={{ to: '/denuncias', icon: '📢', label: 'Canal de Denúncias' }} onClick={() => setSidebarOpen(false)} />
-              )}
-              {(isAdmin || !perfil) && NAV_ADMIN.map(item => (
-                <NavItem key={item.to} item={item} onClick={() => setSidebarOpen(false)} />
-              ))}
-            </div>
-
+            )}
           </nav>
         </aside>
 

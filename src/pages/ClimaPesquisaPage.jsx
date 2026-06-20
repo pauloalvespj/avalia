@@ -489,6 +489,7 @@ export default function ClimaPesquisaPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
   const [toast, setToast]     = useState(null)
+  const [mostraInfo, setMostraInfo] = useState(false)
 
   const carregar = useCallback(async () => {
     if (!empresaId) return
@@ -530,16 +531,24 @@ export default function ClimaPesquisaPage() {
       <PageHeader
         title="Pesquisa de Clima"
         subtitle={empresaAtiva?.nome}
+        action={
+          <button onClick={() => setMostraInfo(v => !v)}
+            className="flex items-center gap-1.5 text-xs font-medium text-primary hover:opacity-75 transition-opacity whitespace-nowrap">
+            ℹ️ O que é Pesquisa de Clima?
+            <span className="text-[10px]">{mostraInfo ? '▲' : '▼'}</span>
+          </button>
+        }
       />
-
-      <div className="card border-l-4 border-primary">
-        <p className="text-sm text-muted leading-relaxed">
-          A <strong className="text-navy">Pesquisa de Clima Organizacional</strong> mede a percepção dos colaboradores sobre aspectos-chave
-          do ambiente de trabalho — comunicação, liderança, reconhecimento, condições físicas e equilíbrio de vida.
-          Configure os tópicos na aba <em>Configurar</em>, compartilhe o link com a equipe e acompanhe os resultados
-          em tempo real. As respostas são anônimas e podem ser filtradas por setor para uma análise mais precisa.
-        </p>
-      </div>
+      {mostraInfo && (
+        <div className="card border-l-4 border-primary">
+          <p className="text-sm text-muted leading-relaxed">
+            A <strong className="text-navy">Pesquisa de Clima Organizacional</strong> mede a percepção dos colaboradores sobre aspectos-chave
+            do ambiente de trabalho — comunicação, liderança, reconhecimento, condições físicas e equilíbrio de vida.
+            Configure os tópicos na aba <em>Configurar</em>, compartilhe o link com a equipe e acompanhe os resultados
+            em tempo real. As respostas são anônimas e podem ser filtradas por setor para uma análise mais precisa.
+          </p>
+        </div>
+      )}
 
       {/* Abas */}
       <div className="flex gap-1 border-b border-border">

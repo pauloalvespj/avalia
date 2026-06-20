@@ -441,6 +441,7 @@ export default function NpsPesquisaPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
   const [toast, setToast]     = useState(null)
+  const [mostraInfo, setMostraInfo] = useState(false)
 
   const carregar = useCallback(async () => {
     if (!empresaId) return
@@ -477,16 +478,27 @@ export default function NpsPesquisaPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Pesquisa de NPS" subtitle={empresaAtiva?.nome} />
-
-      <div className="card border-l-4 border-primary">
-        <p className="text-sm text-muted leading-relaxed">
-          O <strong className="text-navy">eNPS (Employee Net Promoter Score)</strong> mede lealdade e satisfação dos colaboradores com uma
-          pergunta central: "O quanto você recomendaria esta empresa como um bom lugar para trabalhar?" O score varia de
-          -100 a +100 e é complementado por perguntas de aprofundamento por categorias. Acompanhe a evolução mensal e
-          compare resultados entre setores para identificar tendências e oportunidades de melhoria.
-        </p>
-      </div>
+      <PageHeader
+        title="Pesquisa de NPS"
+        subtitle={empresaAtiva?.nome}
+        action={
+          <button onClick={() => setMostraInfo(v => !v)}
+            className="flex items-center gap-1.5 text-xs font-medium text-primary hover:opacity-75 transition-opacity whitespace-nowrap">
+            ℹ️ O que é Pesquisa de NPS?
+            <span className="text-[10px]">{mostraInfo ? '▲' : '▼'}</span>
+          </button>
+        }
+      />
+      {mostraInfo && (
+        <div className="card border-l-4 border-primary">
+          <p className="text-sm text-muted leading-relaxed">
+            O <strong className="text-navy">eNPS (Employee Net Promoter Score)</strong> mede lealdade e satisfação dos colaboradores com uma
+            pergunta central: "O quanto você recomendaria esta empresa como um bom lugar para trabalhar?" O score varia de
+            -100 a +100 e é complementado por perguntas de aprofundamento por categorias. Acompanhe a evolução mensal e
+            compare resultados entre setores para identificar tendências e oportunidades de melhoria.
+          </p>
+        </div>
+      )}
 
       <div className="flex gap-1 border-b border-border">
         {[['configurar','⚙️ Configurar'], ['resultados','📊 Resultados']].map(([key, label]) => (
